@@ -12,6 +12,7 @@ public class RunAllTests extends TestCase
       Class[]  testClasses = {
         /* TODO: Add the names of your unit test classes here */
         // Class.forName("your.class.name.here") 
+    		  MyHttpClientTest.class
       };   
       
       return new TestSuite(testClasses);
