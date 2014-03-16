@@ -119,6 +119,11 @@
         </jar>
     </target>
 
+    <target name="tomcat-root" depends="servlet-war" description="Deploy the WAR file to tomcat as root application">
+	    <copy file="servlet.war" tofile="/var/lib/tomcat7/webapps/ROOT.war" overwrite="true"/>
+    </target>
+
+
     <target name="build" depends="crawler-jar,servlet-war">
     </target>
 

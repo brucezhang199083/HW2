@@ -65,8 +65,8 @@ public class MyHttpClient {
 		String line = null;
 		while((line = br.readLine()) != null)
 		{
-			System.out.println(line);
+			body.append(line);
 		}
-		return null;
+		return body.toString();
 	}
 }
