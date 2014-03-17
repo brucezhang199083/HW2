@@ -58,15 +58,16 @@ public class MyHttpClient {
 		pw.println("Connection: close");
 		pw.println();
 	}
-	public String receive() throws Exception
+	public String [] receive() throws Exception
 	{
 		BufferedReader br = new BufferedReader(new InputStreamReader(m_socket.getInputStream()));
 		StringBuffer body = new StringBuffer();
 		String line = null;
 		while((line = br.readLine()) != null)
 		{
-			body.append(line);
+			body.append(line+"\r\n");
 		}
-		return body.toString();
+		String [] headerbody = body.toString().split("\r\n\r\n");
+		return headerbody;
 	}
 }

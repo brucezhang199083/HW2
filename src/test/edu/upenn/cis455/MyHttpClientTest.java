@@ -14,10 +14,12 @@ public class MyHttpClientTest extends TestCase {
 	}
 	public void testReceive() {
 		try {
-			mhc.connectTo("http://www.cis.upenn.edu/~cis455/");
+			mhc.connectTo("http://www.cis.upenn.edu/~cis455/demo/example1.xml");
 			mhc.send("GET");
 			Thread.sleep(100);
-			mhc.receive();
+			String [] a = mhc.receive();
+			System.out.println(a[0]);
+			System.out.println(a[1]);
 			mhc.closeConnection();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
