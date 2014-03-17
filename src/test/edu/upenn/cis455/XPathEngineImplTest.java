@@ -7,6 +7,31 @@ import junit.framework.TestCase;
 
 public class XPathEngineImplTest extends TestCase {
 
+	String [] validxpaths = {"/test[ a/b1[ c1[p]/d[p] ] /n1[a]/n2 [c2/d[p]/e[text()=\"/asp[&123(123*/]\"]]]",
+			"/a/b[foo[text()=\"#$(/][]\"]][bar]/hi[@asdf=\"#$(&[]\"][this][is][crazy]",
+			"/a1[text()=\"@#$%^\"]/ddddd",
+			"/helloworld[hellothere]",
+			"/foo/bar[@att=\"123\"]",
+			"/foo/bar[contains ( text() , \"valid!\")]/nextbar[contains ( text() , \"valid!\")]/thirdbar",
+			"/blah[anotherElement]",
+			"/this/that[something/else]",
+			"/d/e/f[foo[text()=\"something\"]][bar]",
+			"/a/b/c[   text (  )  =   \"  White Spaces Should Not Matter \"   ]",
+			"/root[text ()=\"super \\\"[]f@ncy\\\" _*&^%<>anno0ying text\"]"
+			};
+	String [] invalidxpaths = {
+			"//root",
+			"/123abc/456def",
+			"/+_+[*_*]",
+			"/root/foo[text()=\"bar\"[text()=blah]]",
+			"/[contains(text(), \"\\\"\")]",
+			"[invalid]",
+			"/foo[@attname=\"unclosed quote]",
+			"/foo[text()=\"unclosed predicate\"",
+			"/foo[ contains(text(), \"unclosed parenthesis\"]",
+			"/foo[@1nvalidattname=\"123\"]",
+			"/foo[bar[text()=\"wrong stacks\"]"	};
+	
 	public void testValidateName() {
 		XPathEngineImpl x = new XPathEngineImpl();
 		assertTrue(x.validateName("ABCDEFG"));
@@ -25,20 +50,9 @@ public class XPathEngineImplTest extends TestCase {
 	public void testIsValid()
 	{
 		XPathEngineImpl x = new XPathEngineImpl();
-		String [] validxpaths = {"/root/rot/rt",
-							"/abc/def[text()=\"abc\"]",
-							"/a1[text()=\"@#$%^\"]/ddddd",
-							"/helloworld[hellothere]",
-							"/foo/bar[@att=\"123\"]",
-							"/foo/bar[contains ( text() , \"valid!\")]/nextbar[contains ( text() , \"valid!\")]/thirdbar",
-							"/blah[anotherElement]",
-							"/this/that[something/else]",
-							"/d/e/f[foo[text()=\"something\"]][bar]",
-							"/a/b/c[   text (  )  =   \"  White Spaces Should Not Matter \"   ]",
-							"/root[text ()=\"super \\\"[]f@ncy\\\" _*&^%<>anno0ying text\"]"
-							};
-		x.setXPaths(validxpaths);
-		boolean ans = x.isValid(0);
+		
+			x.setXPaths(validxpaths);
+			boolean ans = x.isValid(0);	
 			assertTrue(ans);
 			ans = x.isValid(1);
 			assertTrue(ans);
@@ -61,20 +75,7 @@ public class XPathEngineImplTest extends TestCase {
 			ans = x.isValid(10);
 			assertTrue(ans);
 			
-		String [] invalidxpaths = {
-				"//root",
-				"/123abc/456def",
-				"/+_+[*_*]",
-				"/root/foo[text()=\"bar\"[text()=blah]]",
-				"/[contains(text(), \"\\\"\")]",
-				"[invalid]",
-				"/foo[@attname=\"unclosed quote]",
-				"/foo[text()=\"unclosed predicate\"",
-				"/foo[ contains(text(), \"unclosed parenthesis\"]",
-				"/foo[@1nvalidattname=\"123\"]",
-				"/foo[bar[text()=\"wrong stacks\"]"
-		};
-		x.setXPaths(invalidxpaths);
+			x.setXPaths(invalidxpaths);
 			ans = x.isValid(0);
 			assertFalse(ans);
 			ans = x.isValid(1);
@@ -100,4 +101,10 @@ public class XPathEngineImplTest extends TestCase {
 		
 	}
 
+	public void testRecurEvaluate()
+	{
+		XPathEngineImpl x = new XPathEngineImpl();
+		x.setXPaths(validxpaths);
+		x.recurEvaluate(null, null);
+	}
 }

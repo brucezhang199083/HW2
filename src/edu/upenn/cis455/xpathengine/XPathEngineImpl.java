@@ -1,19 +1,33 @@
 package edu.upenn.cis455.xpathengine;
 
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import java.util.StringTokenizer;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
+import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.w3c.tidy.Tidy;
 
 import edu.upenn.cis455.servlet.MyHttpClient;
+import edu.upenn.cis455.servlet.XPathServlet;
 
 public class XPathEngineImpl implements XPathEngine {
 
@@ -55,7 +69,37 @@ public class XPathEngineImpl implements XPathEngine {
 		  return false;
 	  StringTokenizer tokenizer = new StringTokenizer(XPathArray.get(i), "/[]\"", true);
 	  XPathTreeArray.set(i, documentBuilder.newDocument());
-	  return recurIsValid(tokenizer, 0, 0, XPathTreeArray.get(i), null);
+	  Stack<Element> prevStack = new Stack<Element>();
+	  boolean b = recurIsValid(tokenizer, 0, XPathTreeArray.get(i), null, prevStack);
+	  if (b == false)
+	  {
+		  XPathTreeArray.set(i, null);
+	  }
+	  //Print to verify
+	  Transformer transformer;
+	try {
+		transformer = TransformerFactory.newInstance().newTransformer();
+		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+		  //initialize StreamResult with File object to save to file
+		  StreamResult result = new StreamResult(new StringWriter());
+		  DOMSource source = new DOMSource(XPathTreeArray.get(i));
+		  try {
+			transformer.transform(source, result);
+		} catch (TransformerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		  String xmlString = result.getWriter().toString();
+		  System.out.println(xmlString);
+	} catch (TransformerConfigurationException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	} catch (TransformerFactoryConfigurationError e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+	return b;
+	  
   }
 	
   public boolean[] evaluate(Document d) { 
@@ -64,21 +108,38 @@ public class XPathEngineImpl implements XPathEngine {
 	  boolean [] result = new boolean[XPathArray.size()];
 	  for(int i = 0; i < XPathArray.size(); i++)
 	  {
-		  
+		  Document xpathdoc = XPathTreeArray.get(i);
+		  if(xpathdoc == null)
+		  {
+			  boolean valid = this.isValid(i);
+			  if(valid == false)
+			  {
+				  result[i] = false;
+				  continue;
+			  }
+			  else	// Start evaluation
+			  {
+				  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement());
+			  }
+		  }
+		  else
+		  {
+			  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement());
+		  }
 	  }
     return null; 
   }
   /*
    * Recursive function to check if the XPath is valid.
    */
-  private boolean recurIsValid(StringTokenizer tokens, int depth, int stacks, Document document, Element element)
+  private boolean recurIsValid(StringTokenizer tokens, int depth, Document document, Element element, Stack<Element> stack)
   {
 	  String t = null;
 	  if(tokens.hasMoreTokens())
 		  t = tokens.nextToken();
 	  else
 	  {
-		  if (stacks != 0)
+		  if (!stack.empty())
 			  return false;
 		  else
 			  return true;
@@ -86,18 +147,19 @@ public class XPathEngineImpl implements XPathEngine {
 	  if(t.equals("/"))			//elements
 	  {
 		  String name = tokens.nextToken();
-		  if(validateName(name))
+		  if(validateName(name.trim()))
 		  {
-			  if(element == null && depth == 0)
+			  if(element == null)
 			  {
-				  Element current = document.createElement(name);
-				  return recurIsValid(tokens, depth+1, stacks, document, current);
+				  Element current = document.createElement(name.trim());
+				  document.appendChild(current);
+				  return recurIsValid(tokens, depth+1, document, current, stack);
 			  }
 			  else
 			  {
-				  Element current = document.createElement(name);
+				  Element current = document.createElement(name.trim());
 				  element.appendChild(current);
-				  return recurIsValid(tokens, depth+1, stacks, document, current);
+				  return recurIsValid(tokens, depth+1, document, current, stack);
 			  }
 		  }
 		  else
@@ -105,7 +167,7 @@ public class XPathEngineImpl implements XPathEngine {
 	  }
 	  else if(t.equals("["))	//predicates
 	  {
-		  if(depth == 0)	// axis must be '/'
+		  if(element == null)	// axis must be '/'
 			  return false;
 		  else
 		  {
@@ -172,7 +234,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  if(openPredicate == false)
 				  {
 					  element.appendChild(document.createTextNode(text.toString()));
-					  return recurIsValid(tokens, depth, stacks, document, element);
+					  return recurIsValid(tokens, depth, document, element, stack);
 				  }
 				  else
 					  return false;
@@ -183,6 +245,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  Boolean openQuote = null;
 				  String subtoken = null;
 				  String lasttoken = null;
+				  StringBuffer text = new StringBuffer();
 				  while(tokens.hasMoreTokens())
 				  {
 					  lasttoken = subtoken;
@@ -191,7 +254,10 @@ public class XPathEngineImpl implements XPathEngine {
 					  {
 						  //This case we're encountering a quote that is escaped, so we ignore it.
 						  if(lasttoken != null && lasttoken.matches(".*\\\\(\\\\\\\\)*"))
+						  {
+							  text.append(subtoken);
 							  continue;
+						  }
 						  else
 						  {
 							  if(openQuote == null)
@@ -207,6 +273,7 @@ public class XPathEngineImpl implements XPathEngine {
 					  {
 						  if(openQuote != null && openQuote == true)
 						  {
+							  text.append(subtoken);
 							  continue;
 						  }
 						  else	//Malformed xpath text() or contains part
@@ -235,7 +302,10 @@ public class XPathEngineImpl implements XPathEngine {
 						  return false;
 				  }
 				  if(openPredicate == false && openParenthesis == false)
-					  return recurIsValid(tokens, depth, stacks, document, element);
+				  {
+					  element.appendChild(document.createProcessingInstruction("contains", text.toString()));
+					  return recurIsValid(tokens, depth, document, element, stack);
+				  }
 				  else
 					  return false;
 			  } //contains()
@@ -248,7 +318,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  }
 				  else
 				  {
-					  String attr = possible[0].replaceAll("\\s*$", "");
+					  String attr = possible[0].trim();
 					  //Check if the attname is validate
 					  if(validateName(attr))
 					  {
@@ -256,6 +326,7 @@ public class XPathEngineImpl implements XPathEngine {
 						  Boolean openQuote = null;
 						  String subtoken = null;
 						  String lasttoken = null;
+						  StringBuffer text = new StringBuffer();
 						  while(tokens.hasMoreTokens())
 						  {
 							  lasttoken = subtoken;
@@ -264,7 +335,10 @@ public class XPathEngineImpl implements XPathEngine {
 							  {
 								  //This case we're encountering a quote that is escaped, so we ignore it.
 								  if(lasttoken != null && lasttoken.matches(".*\\\\(\\\\\\\\)*"))
+								  {
+									  text.append(subtoken);
 									  continue;
+								  }
 								  else
 								  {
 									  if(openQuote == null)
@@ -280,6 +354,7 @@ public class XPathEngineImpl implements XPathEngine {
 							  {
 								  if(openQuote != null && openQuote == true)
 								  {
+									  text.append(subtoken);
 									  continue;
 								  }
 								  else	//Malformed xpath text() or contains part
@@ -304,7 +379,10 @@ public class XPathEngineImpl implements XPathEngine {
 								  return false;
 						  }
 						  if(openPredicate == false)
-							  return recurIsValid(tokens, depth, stacks);
+						  {
+							  ((Element)element).setAttribute(attr, text.toString());
+							  return recurIsValid(tokens, depth, document, element, stack);
+						  }
 						  else
 							  return false;
 					  }	// if(validateName(attr))
@@ -314,8 +392,14 @@ public class XPathEngineImpl implements XPathEngine {
 			  } //starts with @
 			  else	// recursive call to match step
 			  {
-				  if(validateName(test))
-					  return recurIsValid(tokens, depth+1, stacks+1);
+				  
+				  if(validateName(test.trim()))
+				  {
+					  Element child = document.createElement(test.trim());
+					  element.appendChild(child);
+					  stack.push(element);
+					  return recurIsValid(tokens, depth+1, document, child, stack);
+				  }
 				  else
 					  return false;
 			  }
@@ -323,12 +407,17 @@ public class XPathEngineImpl implements XPathEngine {
 	  }
 	  else if(t.equals("]"))	//predicates close
 	  {
-		  if(depth == 0 || stacks <= 0)
+		  if(element == null || stack.empty())
 			  return false;
 		  else
 		  {
-			  return recurIsValid(tokens, depth, stacks-1);
+			  Element prev = stack.pop();
+			  return recurIsValid(tokens, depth-1, document, prev, stack);
 		  }
+	  }
+	  else if(t.matches("\\s*"))
+	  {
+		  return recurIsValid(tokens, depth, document, element, stack);
 	  }
 	  else
 	  {
@@ -336,6 +425,42 @@ public class XPathEngineImpl implements XPathEngine {
 	  }
   }
   
+  /*
+   * The recursive function to check if the dom matches a specific xpathtree
+   */
+  
+  public boolean recurEvaluate(Element domElement, Element xpathElement)
+  {
+//	  NodeList nl = domElement.getChildNodes();
+//	  for(int i = 0 ; i < nl.getLength() ; i++)
+//	  {
+//		  System.out.println(nl.item(i).getNodeName()+" : "+nl.item(i).getNodeValue());
+//	  }
+	  
+	  if (!domElement.getTagName().equals(xpathElement.getTagName()))
+		  return false;
+	  NodeList nl = domElement.getChildNodes();
+	  for(int i = 0 ; i < nl.getLength() ; i++)
+	  {
+		  Node node = nl.item(i);
+		  switch (node.getNodeType())
+		  {
+		  case Node.ATTRIBUTE_NODE:
+			  
+			  break;
+		  case Node.ELEMENT_NODE:
+			  
+			  break;
+		  case Node.PROCESSING_INSTRUCTION_NODE:
+			  
+			  break;
+		  default:
+			  
+		  }
+	  }
+	  
+	  return true;
+  }
   
   /*
    * The helper function to check if the nodename or attname is valid

@@ -160,7 +160,7 @@ public class XPathServlet extends HttpServlet {
 						pw.println("XPath: \""+xpathlist.get(i)+"\" is "+(xpe.isValid(i) ? "valid." : "invalid."));
 						pw.println("<br/>");
 					}
-					xpe.evaluate(doc);
+					//xpe.recurEvaluate(doc.getDocumentElement(), null);
 				}
 				
 			} catch (Exception e) {
