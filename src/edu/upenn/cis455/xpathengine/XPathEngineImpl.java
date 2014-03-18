@@ -24,6 +24,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.ProcessingInstruction;
+import org.w3c.dom.Text;
 import org.w3c.tidy.Tidy;
 
 import edu.upenn.cis455.servlet.MyHttpClient;
@@ -119,12 +121,12 @@ public class XPathEngineImpl implements XPathEngine {
 			  }
 			  else	// Start evaluation
 			  {
-				  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement());
+				  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement(), 0);
 			  }
 		  }
 		  else
 		  {
-			  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement());
+			  recurEvaluate(d.getDocumentElement(), XPathTreeArray.get(i).getDocumentElement(), 0);
 		  }
 	  }
     return null; 
@@ -429,33 +431,75 @@ public class XPathEngineImpl implements XPathEngine {
    * The recursive function to check if the dom matches a specific xpathtree
    */
   
-  public boolean recurEvaluate(Element domElement, Element xpathElement)
+  public boolean recurEvaluate(Element domElement, Element xpathElement, int depth)
   {
-//	  NodeList nl = domElement.getChildNodes();
-//	  for(int i = 0 ; i < nl.getLength() ; i++)
-//	  {
-//		  System.out.println(nl.item(i).getNodeName()+" : "+nl.item(i).getNodeValue());
-//	  }
-	  
-	  if (!domElement.getTagName().equals(xpathElement.getTagName()))
+	  // Check tagname first when comparing root
+	  if(depth == 0)
+	  {
+		  if (! domElement.getTagName().equals(xpathElement.getTagName()))
+		  {
+			  return false;
+		  }
+	  }
+	  // Check attributes
+	  NamedNodeMap nnm = xpathElement.getAttributes();
+	  boolean attrMatch = true;
+	  for(int a = 0 ; a < nnm.getLength() ; a++)
+	  {
+		  String attrName = ((Attr)nnm.item(a)).getName();
+		  String attrValue = ((Attr)nnm.item(a)).getValue();
+		  if (domElement.hasAttribute(attrName))
+		  {
+			  if (domElement.getAttribute(attrName).equals(attrValue))
+			  {
+				  continue;
+			  }
+			  else
+			  {
+				  attrMatch = false;
+				  break;
+			  }
+		  }
+		  else
+		  {
+			  attrMatch = false;
+			  break;
+		  }
+	  }
+	  if (!attrMatch)
+	  {
 		  return false;
-	  NodeList nl = domElement.getChildNodes();
+	  }
+	  
+	  // Check child nodes recursively
+	  NodeList nl = xpathElement.getChildNodes();
 	  for(int i = 0 ; i < nl.getLength() ; i++)
 	  {
 		  Node node = nl.item(i);
 		  switch (node.getNodeType())
 		  {
-		  case Node.ATTRIBUTE_NODE:
-			  
-			  break;
-		  case Node.ELEMENT_NODE:
-			  
+		  case Node.ELEMENT_NODE:	// An element, where we encounter a recursive call
+			  System.out.println("Element!");
+			  String tagname = ((Element) node).getTagName();
+			  System.out.println(tagname);
+			  NodeList nldom = domElement.getChildNodes();
+			  Node nodedom = null;
+			  for(int idom = 0 ; idom < nl.getLength() ; idom++)
+			  {
+				  nodedom = nldom.item(idom);
+			  }
 			  break;
 		  case Node.PROCESSING_INSTRUCTION_NODE:
-			  
+			  System.out.println("Instruction!");
+			  System.out.println(((ProcessingInstruction)node).getTarget());
+			  System.out.println(((ProcessingInstruction)node).getData());
+			  break;
+		  case Node.TEXT_NODE:
+			  System.out.println("Text!");
+			  System.out.println(((Text)node).getNodeValue());
 			  break;
 		  default:
-			  
+			  System.out.println("Other kind of node: "+node.getNodeType());
 		  }
 	  }
 	  

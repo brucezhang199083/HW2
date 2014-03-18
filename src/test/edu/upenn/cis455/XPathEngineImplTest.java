@@ -105,6 +105,6 @@ public class XPathEngineImplTest extends TestCase {
 	{
 		XPathEngineImpl x = new XPathEngineImpl();
 		x.setXPaths(validxpaths);
-		x.recurEvaluate(null, null);
+		//x.recurEvaluate(null, null);
 	}
 }

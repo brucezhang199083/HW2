@@ -105,6 +105,7 @@ public class XPathServlet extends HttpServlet {
 				pw.println("<p><font color=#FF0000> ERROR: </font>Invalid URL</p>");
 				pw.println("<p><font color=#FF0000> DETAIL: </font>"+e.getMessage()+"</p>");
 				client.closeConnection();
+				return;
 			}
 			try {
 				client.send("GET");
@@ -121,7 +122,16 @@ public class XPathServlet extends HttpServlet {
 					if (header.trim().matches("(?i)Content-Type.*html.*;*.*"))
 					{
 						Tidy tidy = new Tidy();
-						doc = tidy.parseDOM(sr, sw);
+					    tidy.setTidyMark(false);
+					    tidy.setXHTML(true);
+						tidy.setXmlOut(true);
+						tidy.setLowerLiterals(true);
+						//tidy.getConfiguration().printConfigOptions(sw, true);
+						tidy.parse(new ByteArrayInputStream(handb[1].getBytes()), sw);
+						String tidied = sw.toString();
+						DocumentBuilderFactory dbfactory = DocumentBuilderFactory.newInstance();
+						DocumentBuilder db = dbfactory.newDocumentBuilder();
+						doc = db.parse(new ByteArrayInputStream(tidied.getBytes()));
 						type = "html";
 						break;
 					}
@@ -160,7 +170,7 @@ public class XPathServlet extends HttpServlet {
 						pw.println("XPath: \""+xpathlist.get(i)+"\" is "+(xpe.isValid(i) ? "valid." : "invalid."));
 						pw.println("<br/>");
 					}
-					//xpe.recurEvaluate(doc.getDocumentElement(), null);
+					pw.println("<p>"+doc.getDocumentElement().getTextContent()+"</p>");
 				}
 				
 			} catch (Exception e) {
