@@ -1,5 +1,6 @@
 package test.edu.upenn.cis455;
 
+import edu.upenn.cis455.servlet.XPathServletTest;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -13,7 +14,8 @@ public class RunAllTests extends TestCase
         /* TODO: Add the names of your unit test classes here */
         // Class.forName("your.class.name.here") 
     		  MyHttpClientTest.class,
-    		  XPathEngineImplTest.class
+    		  XPathEngineImplTest.class,
+    		  XPathServletTest.class
       };   
       
       return new TestSuite(testClasses);
