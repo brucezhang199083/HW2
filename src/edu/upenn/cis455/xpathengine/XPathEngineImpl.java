@@ -2,6 +2,7 @@ package edu.upenn.cis455.xpathengine;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -492,9 +493,20 @@ public class XPathEngineImpl implements XPathEngine {
 			  //System.out.println(target);
 			  //System.out.println(data);
 			  String textcontent = domElement.getTextContent();
+			  NodeList textlist = domElement.getChildNodes();
+			  HashSet<String> textset = new HashSet<String>();
+			  for (int it = 0; it < textlist.getLength(); it++)
+			  {
+				  Node nt = textlist.item(it);
+				  if(nt.getNodeType() == Node.TEXT_NODE)
+				  {
+					  textset.add(nt.getTextContent());
+				  }
+			  }
+			  
 			  if (target.equals("text"))	// deal with text()="..."
 			  {
-				  if (!textcontent.equals(data))
+				  if (!textset.contains(data))
 				  {
 					  return false;
 				  }
