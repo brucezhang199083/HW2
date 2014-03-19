@@ -2,7 +2,9 @@ package edu.upenn.cis455.servlet;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -17,6 +19,7 @@ public class MyHttpClient {
 	private boolean m_connected;
 	private URL m_url;
 	
+	private InputStream socketInputStream;
 	public MyHttpClient()
 	{
 		m_socket = new Socket();
@@ -37,6 +40,7 @@ public class MyHttpClient {
 		m_socket.close();
 		m_socket = new Socket();
 		m_connected = false;
+		socketInputStream = null;
 		return true;
 	}
 	public void send(String method) throws Exception
@@ -60,14 +64,32 @@ public class MyHttpClient {
 	}
 	public String [] receive() throws Exception
 	{
-		BufferedReader br = new BufferedReader(new InputStreamReader(m_socket.getInputStream()));
+		socketInputStream = m_socket.getInputStream();
+		BufferedReader br = new BufferedReader(new InputStreamReader(socketInputStream));
+		StringBuffer header = new StringBuffer();
 		StringBuffer body = new StringBuffer();
-		String line = null;
+		String line = br.readLine();
+		if(!line.matches("(?i)HTTP/1\\..\\s*200.*"))
+		{
+			throw new Exception("CONTENT NOT ACCESSABLE! Please verify your URL");
+		}
+		while((line = br.readLine()) != null)
+		{
+			header.append(line+"\r\n");
+			if(line.equals(""))
+			{
+				break;
+			}
+		}
 		while((line = br.readLine()) != null)
 		{
 			body.append(line+"\r\n");
 		}
-		String [] headerbody = body.toString().split("\r\n\r\n");
-		return headerbody;
+		String [] result = {header.toString(), body.toString()};
+		return result;
+	}
+	public InputStream getInputStream()
+	{
+		return socketInputStream;
 	}
 }

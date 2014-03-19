@@ -105,7 +105,8 @@
     <target name="servlet-war" depends="compile-servlet" description="Makes the WAR file for the servlet">
         <delete file="servlet.war"/>
         <copy file="${conf.dir}${file.separator}web.xml" tofile="${web-inf.dir}${file.separator}web.xml" overwrite="true" />
-        <copy todir="${web-inf.lib.dir}" overwrite="true">
+    	<copy file="${basedir}${file.separator}fancytable.css" tofile="${build.target.dir}${file.separator}fancytable.css" overwrite="true" />
+    	<copy todir="${web-inf.lib.dir}" overwrite="true">
             <fileset dir="${inputlib.dir}">
                 <include name="*.jar"/>
             </fileset>
@@ -114,6 +115,7 @@
             <fileset dir="target">
                 <include name="**/*.class"/>
                 <include name="**/*.jar"/>
+            	<include name="*.css"/>
                 <include name="WEB-INF/web.xml"/>
             </fileset>
         </jar>

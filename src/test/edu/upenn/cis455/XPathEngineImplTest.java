@@ -1,6 +1,14 @@
 package test.edu.upenn.cis455;
 
+import java.io.IOException;
 import java.util.StringTokenizer;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 import junit.framework.TestCase;
@@ -27,7 +35,7 @@ public class XPathEngineImplTest extends TestCase {
 			"/[contains(text(), \"\\\"\")]",
 			"[invalid]",
 			"/foo[@attname=\"unclosed quote]",
-			"/foo[text()=\"unclosed predicate\"",
+			"/foo[text()=",
 			"/foo[ contains(text(), \"unclosed parenthesis\"]",
 			"/foo[@1nvalidattname=\"123\"]",
 			"/foo[bar[text()=\"wrong stacks\"]"	};
@@ -101,10 +109,35 @@ public class XPathEngineImplTest extends TestCase {
 		
 	}
 
-	public void testRecurEvaluate()
+	public void testEvaluate()
 	{
 		XPathEngineImpl x = new XPathEngineImpl();
-		x.setXPaths(validxpaths);
-		//x.recurEvaluate(null, null);
+		String [] onlyone = {"/root[abc[@att2=\"num2\"]][abc[@att1=\"num1\"]][l1/l2/l3/l4/l5/l6[@says=\"deep\"][contains(text(), \"eepd\")]]"};
+		x.setXPaths(onlyone);
+		x.isValid(0);
+		DocumentBuilder db;
+		try {
+			db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document doc = db.parse("http://www.seas.upenn.edu/~zhanghao/test2.xml");
+			boolean [] result = x.evaluate(doc);
+			assertTrue(result[0]);
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String [] another = {"/html[@xmlns =\"http://www.w3.org/1999/xhtml\"]" +
+							 "[head]/body[@bgcolor=\"#FFFFFF\"][script[contains(text(), \"function\")]][table/tr/td[@width=\"1655\"]]"};
+		x.setXPaths(another);
+		x.isValid(0);
+		try {
+			db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document doc = db.parse("http://www.seas.upenn.edu/~zhanghao/cishome.xml");
+			boolean [] result = x.evaluate(doc);
+			assertTrue(result[0]);
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }

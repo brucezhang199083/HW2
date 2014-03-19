@@ -1,24 +1,46 @@
-Full name:  ______________
-SEAS login: ______________
+Full name:  Hao Zhang
+SEAS login: zhanghao
 
 Which features did you implement? 
   (list features, or write 'Entire assignment')
-
+  	Entire assignment
 Did you complete any extra-credit tasks? If so, which ones?
   (list extra-credit tasks)
-
+	Not yet
 Any special instructions for building and running your solution?
   (include detailed instructions, or write 'None')
-
+  
+####---Look Here And Read This, Thanks!---####
+    
+	I'm deploying my servlet on Tomcat's root application. Here is a simple instruction (but need root access):
+	1. cd into /var/lib/tomcat7/webapps ;
+	2. rename the ROOT folder by
+	   $ mv ROOT oldROOT
+	3. cd into my solution.
+	4. run ant in sudo to deploy in one command (easy!):
+	   $ sudo ant tomcat-root
+	   
+	If this succeeds, you can access my XPathServlet by the URL 'http://localhost:8080/xpath'
+	
+	Alternatively, you can copy the web archive into tomcat's webapps folder by yourself, but you should run
+	   $ ant servlet-war
+	first to build the war file. Then you can run:
+	   $ sudo cp servlet-war /var/lib/tomcat7/webapps/ROOT.war
+	   
+	
+	BTW, the web.xml under conf/ is ready to deploy on Tomcat.  
+	BTW*2, the 'fancytable.css' is the stylesheet I used in my servlet, please don't move it or delete it.
+	BTW*3, I didn't try Jetty, but I think it should be easy as the war file are already there.
+	
 Did you personally write _all_ the code you are submitting
 (other than code from the course web page)?
-  [ ] Yes
+  [v] Yes
   [ ] No
 
 Did you copy any code from the Internet, or from classmates?
   [ ] Yes
-  [ ] No
+  [v] No
 
 Did you collaborate with anyone on this assignment?
   [ ] Yes
-  [ ] No
+  [v] No
