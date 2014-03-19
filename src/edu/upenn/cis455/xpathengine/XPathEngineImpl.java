@@ -170,7 +170,7 @@ public class XPathEngineImpl implements XPathEngine {
 					  if(subtoken.equals("\""))
 					  {
 						  //in case we're encountering a quote that is escaped, ignore it.
-						  if(lasttoken != null && lasttoken.matches(".*\\\\"))
+						  if(lasttoken != null && lasttoken.matches(".*(\\\\\\\\)*\\\\"))
 						  {
 							  text.append(subtoken);
 							  continue;
@@ -220,7 +220,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  {
 					  // Escape the quotes
 					  String mytext = text.toString().replace("\\\"", "\"");
-					  
+					  mytext = text.toString().replace("\\\\", "\\");
 					  // Create a ProcessingInstruction node 
 					  element.appendChild(document.createProcessingInstruction("text", mytext));
 					  return recurIsValid(tokens, depth, document, element, stack);
@@ -242,7 +242,7 @@ public class XPathEngineImpl implements XPathEngine {
 					  if(subtoken.equals("\""))
 					  {
 						  //This case we're encountering a quote that is escaped, so we ignore it.
-						  if(lasttoken != null && lasttoken.matches(".*\\\\"))
+						  if(lasttoken != null && lasttoken.matches(".*(\\\\\\\\)*\\\\"))
 						  {
 							  text.append(subtoken);
 							  continue;
@@ -293,7 +293,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  if(openPredicate == false && openParenthesis == false)
 				  {
 					  String mytext = text.toString().replace("\\\"", "\"");
-
+					  mytext = text.toString().replace("\\\\", "\\");
 					  element.appendChild(document.createProcessingInstruction("contains", mytext));
 					  return recurIsValid(tokens, depth, document, element, stack);
 				  }
@@ -325,7 +325,7 @@ public class XPathEngineImpl implements XPathEngine {
 							  if(subtoken.equals("\""))
 							  {
 								  //This case we're encountering a quote that is escaped, so we ignore it.
-								  if(lasttoken != null && lasttoken.matches(".*\\\\"))
+								  if(lasttoken != null && lasttoken.matches(".*(\\\\\\\\)*\\\\"))
 								  {
 									  text.append(subtoken);
 									  continue;
@@ -372,7 +372,7 @@ public class XPathEngineImpl implements XPathEngine {
 						  if(openPredicate == false)
 						  {
 							  String mytext = text.toString().replace("\\\"", "\"");
-							  
+							  mytext = text.toString().replace("\\\\", "\\");
 							  ((Element)element).setAttribute(attr, mytext);
 							  return recurIsValid(tokens, depth, document, element, stack);
 						  }
