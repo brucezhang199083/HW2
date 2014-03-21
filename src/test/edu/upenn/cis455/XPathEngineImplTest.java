@@ -1,14 +1,19 @@
 package test.edu.upenn.cis455;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.StringTokenizer;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 import junit.framework.TestCase;
@@ -126,8 +131,7 @@ public class XPathEngineImplTest extends TestCase {
 			e.printStackTrace();
 		}
 		
-		String [] another = {"/html[@xmlns =\"http://www.w3.org/1999/xhtml\"]" +
-							 "[head]/body[@bgcolor=\"#FFFFFF\"][script[contains(text(), \"function\")]][table/tr/td[@width=\"1655\"]]"};
+		String [] another = {"/html[@xmlns =\"http://www.w3.org/1999/xhtml\"][head/title[contains(text(), \"Computer & Inf\")]]"};
 		x.setXPaths(another);
 		x.isValid(0);
 		try {
@@ -140,4 +144,6 @@ public class XPathEngineImplTest extends TestCase {
 			e.printStackTrace();
 		}
 	}
+	
+
 }

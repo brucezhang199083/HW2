@@ -45,7 +45,7 @@ public class XPathServletTest extends TestCase {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
 			Mockito.when(mockResponse.getWriter()).thenReturn(pw);
-			Mockito.when(mockRequest.getParameter("urlofxml")).thenReturn("http://www.seas.upenn.edu/~cis455/demo/example1.xml");
+			Mockito.when(mockRequest.getParameter("urlofxml")).thenReturn("http://localhost:8080/examples");
 			Mockito.when(mockRequest.getParameter("xpathnum0")).thenReturn("/html");
 			Mockito.when(mockRequest.getParameter("another")).thenReturn(null);
 			Mockito.when(mockRequest.getParameter("done")).thenReturn("Submit");

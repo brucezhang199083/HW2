@@ -3,7 +3,6 @@ package edu.upenn.cis455.xpathengine;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Stack;
 import java.util.StringTokenizer;
 
@@ -26,11 +25,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.ProcessingInstruction;
-import org.w3c.dom.Text;
-import org.w3c.tidy.Tidy;
-
-import edu.upenn.cis455.servlet.MyHttpClient;
-import edu.upenn.cis455.servlet.XPathServlet;
 
 public class XPathEngineImpl implements XPathEngine {
 
@@ -59,6 +53,8 @@ public class XPathEngineImpl implements XPathEngine {
 	  XPathTreeArray.clear();
 	  for(String xpath : s)
 	  {
+//		  String out = this.removeSpace(xpath);
+//		  System.out.println(out);
 		  XPathArray.add(xpath);
 		  XPathTreeArray.add(null);
 	  }
@@ -69,6 +65,9 @@ public class XPathEngineImpl implements XPathEngine {
   public boolean isValid(int i) {
 	  
 	  if(i >= XPathArray.size())
+		  return false;
+	  String x = XPathArray.get(i);
+	  if (x == null)	// have open quotes, invalid
 		  return false;
 	  StringTokenizer tokenizer = new StringTokenizer(XPathArray.get(i), "/[]\"", true);
 	  if(!tokenizer.hasMoreElements())
@@ -130,8 +129,8 @@ public class XPathEngineImpl implements XPathEngine {
 	  }
 	  if(t.equals("/"))			//elements
 	  {
-		  String name = tokens.nextToken();
-		  if(validateName(name.trim()))
+		  String name = tokens.nextToken().replaceAll("\\s+", "");
+		  if(validateName(name))
 		  {
 			  if(element == null)
 			  {
@@ -155,9 +154,9 @@ public class XPathEngineImpl implements XPathEngine {
 			  return false;
 		  else
 		  {
-			  String test = tokens.nextToken();
+			  String test = tokens.nextToken().replaceAll("\\s+", "");
 			  //First test case : text()=""
-			  if(test.trim().matches("text\\s*\\(\\s*\\)\\s*="))
+			  if(test.trim().matches("text\\(\\)="))
 			  {
 				  // Test if the test is a valid text() matching
 				  Boolean openQuote = null;
@@ -229,7 +228,7 @@ public class XPathEngineImpl implements XPathEngine {
 				  else
 					  return false;
 			  }	//text()
-			  else if(test.trim().matches("contains\\s*\\(\\s*text\\s*\\(\\s*\\)\\s*,"))
+			  else if(test.trim().matches("contains\\(text\\(\\),"))
 			  {
 				// Test if the test is a valid text() or contains(text(),...) matching
 				  Boolean openQuote = null;
@@ -579,5 +578,44 @@ public class XPathEngineImpl implements XPathEngine {
 			e1.printStackTrace();
 		}
 		return null;
+  }
+  public String removeSpace(String input)
+  {
+	  String [] array = input.split("\"");
+	  StringBuffer sb = new StringBuffer();
+	  boolean openQuote = false;
+	  for(int i = 0 ; i < array.length ; i++)
+	  {
+		  if(i == 0)
+		  {
+			  sb.append(array[i].replaceAll("\\s+", "")+"\"");
+			  if (array.length != 1)
+				  openQuote = true;
+		  }
+		  else
+		  {
+			  if(openQuote)
+			  {
+				  if(array[i].matches(".*(\\\\\\\\)*\\\\"))
+				  {
+					  sb.append(array[i]+"\"");
+				  }
+				  else
+				  {
+					  sb.append(array[i]+"\"");
+					  openQuote = false;
+				  }
+			  }
+			  else
+			  {
+				   sb.append(array[i].replaceAll("\\s+", "")+"\"");
+				   openQuote = true;
+			  }
+		  }
+	  }
+	  if (openQuote)
+		  return null;
+	  else
+		  return sb.toString();
   }
 }
