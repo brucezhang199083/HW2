@@ -1,4 +1,4 @@
-package edu.upenn.cis455.servlet;
+package edu.upenn.cis455.Client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +26,10 @@ public class MyHttpClient {
 	}
 	public void connectTo(String url) throws IOException
 	{
-		m_url = new URL(url);
+		if (url.startsWith("http://") || url.startsWith("HTTP://"))
+			m_url = new URL(url);
+		else
+			m_url = new URL("http://"+url);
 		String host = m_url.getHost();
 		int port = m_url.getPort();
 		if (port == -1)
@@ -43,35 +46,39 @@ public class MyHttpClient {
 		socketInputStream = null;
 		return true;
 	}
-	public void send(String method) throws Exception
+	public void send(String method) throws MyClientException, IOException
 	{
 		if (m_connected == false)
 		{
-			throw new Exception("NOT CONNECTED YET");
+			throw new MyClientException("NOT CONNECTED YET");
 		}
 		if (!method.equals("GET") && !method.equals("HEAD"))
 		{
-			throw new Exception("METHOD NOT SUPPORTED");
+			throw new MyClientException("METHOD NOT SUPPORTED");
 		}
 		String path = m_url.getPath();
 		if(path.equals(""))
 			path = "/";
-		PrintWriter pw = new PrintWriter(m_socket.getOutputStream(), true);
+		PrintWriter pw;
+		pw = new PrintWriter(m_socket.getOutputStream(), true);
 		pw.println(method+" "+path+" HTTP/1.1");
 		pw.println("Host: "+m_url.getHost());
 		pw.println("Connection: close");
+		pw.println("User-Agent: cis455crawler");	//the header required
 		pw.println();
+
+		
 	}
-	public String [] receive() throws Exception
+	public String [] receive() throws IOException, MyClientException
 	{
 		socketInputStream = m_socket.getInputStream();
 		BufferedReader br = new BufferedReader(new InputStreamReader(socketInputStream));
 		StringBuffer header = new StringBuffer();
 		StringBuffer body = new StringBuffer();
 		String line = br.readLine();
-		if(!line.matches("(?i)HTTP/1\\..\\s*200.*"))
+		if(!line.matches("(?i)HTTP/1\\..\\s*[23]0[0-9].*"))
 		{
-			throw new Exception("CONTENT NOT ACCESSABLE! Please verify your URL");
+			throw new MyClientException("CONTENT NOT ACCESSABLE! Detail:"+line);
 		}
 		while((line = br.readLine()) != null)
 		{
@@ -92,4 +99,6 @@ public class MyHttpClient {
 	{
 		return socketInputStream;
 	}
+	
+	
 }

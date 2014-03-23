@@ -5,7 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.regex.Matcher;
 
-import edu.upenn.cis455.servlet.MyHttpClient;
+import edu.upenn.cis455.Client.MyHttpClient;
+
 import junit.framework.TestCase;
 
 public class MyHttpClientTest extends TestCase {

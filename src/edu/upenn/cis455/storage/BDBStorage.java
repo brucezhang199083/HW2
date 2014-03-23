@@ -9,14 +9,16 @@ import com.sleepycat.je.EnvironmentConfig;
 
 public class BDBStorage {
 	public Environment myEnv;
-	public Database myDB;
 	
-	public BDBStorage()
+	public BDBStorage(String path)
 	{
 		EnvironmentConfig ec = new EnvironmentConfig();
-		ec.setAllowCreate(true);
-		myEnv  = new Environment(new File("/tmp/bdb"), ec);
-		
+		File storepath = new File(path);
+		if(!storepath.isDirectory())
+		{
+			storepath.mkdir();
+		}
+		myEnv  = new Environment(storepath, ec);
 		DatabaseConfig dbConfig = new DatabaseConfig();
 		dbConfig.setAllowCreate(true);
 		

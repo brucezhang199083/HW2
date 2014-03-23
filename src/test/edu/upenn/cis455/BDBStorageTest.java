@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 public class BDBStorageTest extends TestCase {
 
 	public void testBDBStorage() {
-		BDBStorage bdbStorage = new BDBStorage();
+		BDBStorage bdbStorage = new BDBStorage("/tmp/abc");
 		DatabaseEntry key = new DatabaseEntry();
 		DatabaseEntry value = new DatabaseEntry();
 		

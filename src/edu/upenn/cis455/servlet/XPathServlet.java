@@ -21,6 +21,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.tidy.Tidy;
 
+import edu.upenn.cis455.Client.MyHttpClient;
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 
 @SuppressWarnings("serial")
