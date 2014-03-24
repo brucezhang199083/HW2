@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.Date;
 
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
@@ -19,7 +21,7 @@ public class BDBStorage {
 	
 	private Database dbUser;
 	private Database dbDoc;
-	private Database dbDocMod;
+	private Database dbModify;
 	private Database dbXPath;
 	public BDBStorage(String path)
 	{
@@ -35,7 +37,7 @@ public class BDBStorage {
 		dbConfig.setAllowCreate(true);
 		dbUser = myEnv.openDatabase(null, "User", dbConfig);
 		dbDoc = myEnv.openDatabase(null, "Document", dbConfig);
-		dbDocMod = myEnv.openDatabase(null, "DocumentModified", dbConfig);
+		dbModify = myEnv.openDatabase(null, "ModifiedTime", dbConfig);
 		dbXPath = myEnv.openDatabase(null, "XPath", dbConfig);
 	}
 	
@@ -72,20 +74,124 @@ public class BDBStorage {
 		else 
 			return false;
 	}
+	
+	public boolean addChannel(String username, String channelname, String xslurl, String [] xpaths, String [] urls, boolean append) throws IOException, ClassNotFoundException
+	{
+		DatabaseEntry key = new DatabaseEntry((channelname+"@"+username).getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		if (!append)
+		{
+			MyChannel mychannel = new MyChannel(username, channelname, xslurl, xpaths, urls);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(mychannel);
+			data.setData(baos.toByteArray());
+			OperationStatus op = dbXPath.put(null, key, data);
+			if (op == OperationStatus.SUCCESS)
+				return true;
+			else
+				return false;
+		}
+		else
+		{
+			OperationStatus op = dbXPath.get(null, key, data, null);
+			MyChannel mychannel = null;
+			if (op == OperationStatus.SUCCESS)
+			{
+				ByteArrayInputStream bais = new ByteArrayInputStream(data.getData());
+				ObjectInputStream ois = new ObjectInputStream(bais);
+				mychannel = ((MyChannel)ois.readObject());
+				mychannel.appendXPaths(Arrays.asList(xpaths));
+			}
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(mychannel);
+			data.setData(baos.toByteArray());
+			op = dbXPath.put(null, key, data);
+			if (op == OperationStatus.SUCCESS)
+				return true;
+			else
+				return false;
+		}
+	}
+	public MyChannel getChannel(String username, String channelname) throws IOException, ClassNotFoundException
+	{
+		DatabaseEntry key = new DatabaseEntry((channelname+"@"+username).getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		OperationStatus op = dbXPath.get(null, key, data, null);
+		MyChannel mychannel = null;
+		if (op == OperationStatus.SUCCESS)
+		{
+			ByteArrayInputStream bais = new ByteArrayInputStream(data.getData());
+			ObjectInputStream ois = new ObjectInputStream(bais);
+			mychannel = ((MyChannel)ois.readObject());
+			return mychannel;
+		}
+		else
+			return null;
+	}
+	
+	public void putDocument(String url, String raw)
+	{
+		DatabaseEntry key = new DatabaseEntry(url.getBytes());
+		DatabaseEntry data = new DatabaseEntry(raw.getBytes());
+		Long now = (new Date()).getTime();
+		DatabaseEntry datatime = new DatabaseEntry(now.toString().getBytes());
+		// write to both document and modifiedtime
+		dbDoc.put(null, key, data);
+		dbModify.put(null, key, datatime);
+		
+	}
+	
+	public long getModified(String url)
+	{
+		DatabaseEntry key = new DatabaseEntry(url.getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		// write to both document and modifiedtime
+		OperationStatus op = dbModify.get(null, key, data, null);
+		if (op != OperationStatus.SUCCESS)
+			return 0;
+		else
+		{
+			long time = Long.valueOf(new String(data.getData()));
+			return time;
+		}
+	}
+	
+	public String getDocument(String url)
+	{
+		DatabaseEntry key = new DatabaseEntry(url.getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		// write to both document and modifiedtime
+		OperationStatus op = dbDoc.get(null, key, data, null);
+		if (op != OperationStatus.SUCCESS)
+			return null;
+		else
+		{
+			return new String(data.getData());
+		}
+	}
+	
 	public void closeDatabase()
 	{
 		dbUser.close();
 		dbDoc.close();
-		dbDocMod.close();
 		dbXPath.close();
+		dbModify.close();
 	}
 	
 	public void removeAllDatabase()	//Should be very careful when calling this function
 	{
 		myEnv.removeDatabase(null, "User");
 		myEnv.removeDatabase(null, "Document");
-		myEnv.removeDatabase(null, "DocumentModified");
 		myEnv.removeDatabase(null, "XPath");
+		myEnv.removeDatabase(null, "ModifiedTime");
+	}
+	
+	public void closeEnvironment()
+	{
+		closeDatabase();
+		myEnv.close();
 	}
 	
 }

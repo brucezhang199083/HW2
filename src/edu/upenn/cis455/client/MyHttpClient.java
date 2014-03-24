@@ -111,7 +111,7 @@ public class MyHttpClient {
 				{
 					while((line = br.readLine()) != null)
 					{
-						//System.out.println(line);
+						System.out.println(line);
 						int numChar = Integer.parseInt(line, 16);
 						System.out.println("chunksize:"+numChar);
 						if(numChar == 0)
@@ -119,13 +119,14 @@ public class MyHttpClient {
 						int data;
 						for(int i = 0; i < numChar; i++)
 						{
-							data = br.read();
+							char [] cbuf = new char[numChar];
+							data = br.read(cbuf);
 							if (data == -1)
 								throw new MyClientException("chunk end unexpectedly");
 							else
-								body.append((char) data);
+								body.append(cbuf);
 						}
-						
+						System.out.println(body.length());
 					}
 				}
 				catch (NumberFormatException | IOException e)

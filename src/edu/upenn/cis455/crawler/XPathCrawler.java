@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -23,6 +24,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 
 import edu.upenn.cis455.client.MyClientException;
@@ -176,7 +179,7 @@ public class XPathCrawler {
 			return;
 		}
 		XPathCrawler instance = new XPathCrawler();
-		//BDBStorage bdb = new BDBStorage(StoragePath);
+		BDBStorage bdb = new BDBStorage(StoragePath);
 		try {
 			URL seeds = null;
 			if (!StartingPage.startsWith("http://"))
@@ -194,7 +197,7 @@ public class XPathCrawler {
 		}
 		try {
 			int count = 0;
-			while(instance.crawlNext() != null)
+			while(instance.crawlNext(bdb) != null)
 			{
 				count++;
 				if (MaximumDocNumber > 0 && count >= MaximumDocNumber)
@@ -211,7 +214,7 @@ public class XPathCrawler {
 
 	}
 
-	Boolean crawlNext() throws IOException, InterruptedException
+	Boolean crawlNext(BDBStorage storage) throws IOException, InterruptedException
 	{
 		URL nextURL = crawlingQueue.poll();
 		//Thread.sleep(1000);
@@ -293,13 +296,25 @@ public class XPathCrawler {
 							mhc.send("GET");
 							System.out.println(nextURL+" : HTML Downloading...");
 							System.out.println("Get sended");
-							String [] handb = mhc.receive();
+							String [] handb = null;
+							try
+							{
+								handb = mhc.receive();
+							}
+							catch (MyClientException e)
+							{
+								System.out.println("Error when receiving, discarding...");
+								return false;
+							}
 							mhc.closeConnection();
 							if (handb[1].length() > MaximumSize)
 							{
 								System.out.println(nextURL+" : File size exceeds limit, discarding...");
 								return false;
 							}
+							//Store raw html first
+							storage.putDocument(nextURL.toString(), handb[1]);
+							
 							// parse Document using Jsoup
 							Document d = Jsoup.parse(handb[1]);
 							Elements linklist = d.select("a[href]");
@@ -355,9 +370,24 @@ public class XPathCrawler {
 							rule.access();
 							System.out.println(nextURL+" : XML Downloading...");
 							String [] handb = mhc.receive();
+							
 							if (handb[1].length() > MaximumSize)
 								return false;
-							// store and no more crawling for XML
+							DocumentBuilderFactory factory  =  DocumentBuilderFactory.newInstance(); 
+							DocumentBuilder documentBuilder;
+							org.w3c.dom.Document doc = null;
+							try {
+								documentBuilder = factory.newDocumentBuilder();
+								doc = documentBuilder.parse(new InputSource(new InputStreamReader(new ByteArrayInputStream(handb[1].getBytes()),"UTF-8")));
+								// store and no more crawling for XML
+							} catch (ParserConfigurationException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} catch (SAXException e) {
+								// TODO Auto-generated catch block
+								System.out.println("Malformed XML");
+								e.printStackTrace();
+							}
 						}
 						else
 						{
