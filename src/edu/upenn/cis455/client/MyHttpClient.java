@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
@@ -16,6 +17,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
 
 
 public class MyHttpClient {
@@ -86,9 +88,11 @@ public class MyHttpClient {
 		StringBuffer header = new StringBuffer();
 		StringBuffer body = new StringBuffer();
 		String line = br.readLine();
+		if (line == null)
+			throw new MyClientException("NOTHING TO READ!!!");
 		if(!line.matches("(?i)HTTP/1\\..\\s*[23]0[0-9].*"))
 		{
-			throw new MyClientException("CONTENT NOT ACCESSABLE! Detail:"+line);
+			throw new MyClientException("CONTENT NOT ACCESSABLE! "+m_url+"Detail:"+line);
 		}
 		while((line = br.readLine()) != null)
 		{
@@ -98,9 +102,52 @@ public class MyHttpClient {
 				break;
 			}
 		}
-		while((line = br.readLine()) != null)
+		HashMap<String , List<String> > hm = parseHeader(header.toString());
+		if (hm.containsKey("transfer-encoding"))
 		{
-			body.append(line+"\r\n");
+			if (hm.get("transfer-encoding").get(0).equals("chunked"))
+			{
+				try
+				{
+					while((line = br.readLine()) != null)
+					{
+						//System.out.println(line);
+						int numChar = Integer.parseInt(line, 16);
+						System.out.println("chunksize:"+numChar);
+						if(numChar == 0)
+							break;
+						int data;
+						for(int i = 0; i < numChar; i++)
+						{
+							data = br.read();
+							if (data == -1)
+								throw new MyClientException("chunk end unexpectedly");
+							else
+								body.append((char) data);
+						}
+						
+					}
+				}
+				catch (NumberFormatException | IOException e)
+				{
+					e.printStackTrace();
+					throw new MyClientException("Error parsing chunked data");
+				}
+			}
+			else
+			{
+				while((line = br.readLine()) != null)
+				{
+					body.append(line+"\r\n");
+				}
+			}
+		}
+		else
+		{
+			while((line = br.readLine()) != null)
+			{
+				body.append(line+"\r\n");
+			}
 		}
 		String [] result = {header.toString(), body.toString()};
 		return result;

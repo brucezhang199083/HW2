@@ -1,5 +1,8 @@
 package test.edu.upenn.cis455;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import edu.upenn.cis455.crawler.RobotRules;
 import junit.framework.TestCase;
 
@@ -14,12 +17,12 @@ public class RobotRulesTest extends TestCase {
 		assertTrue(rr.isCrawlable());
 	}
 
-	public void testIsDisallowed() {
+	public void testIsDisallowed() throws MalformedURLException {
 		RobotRules rr = new RobotRules();
 		rr.addDisallow("/abc");
 		rr.addDisallow("/foo/*/bar");
 		rr.addDisallow("/myserver?");
-		
+
 		assertFalse(rr.isDisallowed("/def"));
 		assertFalse(rr.isDisallowed("/foo"));
 		assertFalse(rr.isDisallowed("/foo/b/b/b/bar"));

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -145,7 +146,7 @@ public class XPathCrawler {
 		System.out.println("SEAS Login: zhanghao");
 		System.out.println("Usage: java XPathCrawler StartingPage StorageDir MaxSize [MaxDocNum]");
 	}
-
+	
 	// Main
 	public static void main(String args[]) throws InterruptedException
 	{
@@ -219,25 +220,39 @@ public class XPathCrawler {
 			return null;
 		}
 		else
-		{
-			
+		{			
 			if (crawledSet.contains(nextURL.toString()))
 				return false;
-			else
+			RobotRules rule = null;
+			try
 			{
-				crawledSet.add(nextURL.toString());
-				System.out.println(nextURL);
+				rule = this.parseRobotsTxt(nextURL);
 			}
-			RobotRules rule = this.parseRobotsTxt(nextURL);
+			catch (UnknownHostException e)
+			{
+				System.out.println("Host not found!");
+				return false;
+			}
+			catch (IOException e2)
+			{
+				e2.printStackTrace();
+			}
 			if (!rule.isCrawlable())
 			{
 				crawlingQueue.add(nextURL);
-				crawledSet.remove(nextURL.toString());
 				//Thread.sleep(5000);
+				return false;
+			}
+			else if(rule.isDisallowed(nextURL.getPath()+"?"+nextURL.getQuery()))
+			{
+				// the content is disallowed
 				return false;
 			}
 			else
 			{
+				// We actually crawled this URL
+				crawledSet.add(nextURL.toString());
+				// Make connection
 				MyHttpClient mhc = new MyHttpClient();
 				mhc.connectTo(nextURL);
 				// Send head to get info
@@ -262,34 +277,34 @@ public class XPathCrawler {
 					{
 						int contentLength = Integer.parseInt(headerMap.get("content-length").get(0));
 						if (contentLength > MaximumSize)
+						{
+							System.out.println(nextURL+" : File size exceeds limit, discarding...");
 							return false;
+						}
 					}
 					if (headerMap.containsKey("content-type"))
 					{
-						String type = headerMap.get("content-type").get(0).split(";")[0].trim();
-						
-						
+						String type = headerMap.get("content-type").get(0).split(";")[0].trim();					
 						if (type.matches("text/html"))
 						{
 							// retrieve the body and push links\
 							mhc.connectTo(nextURL);
 							rule.access();
 							mhc.send("GET");
+							System.out.println(nextURL+" : HTML Downloading...");
 							System.out.println("Get sended");
 							String [] handb = mhc.receive();
 							mhc.closeConnection();
 							if (handb[1].length() > MaximumSize)
 							{
-								System.out.println("Content Length exceeds the limit");
+								System.out.println(nextURL+" : File size exceeds limit, discarding...");
 								return false;
 							}
-
+							// parse Document using Jsoup
 							Document d = Jsoup.parse(handb[1]);
 							Elements linklist = d.select("a[href]");
 							// go on crawling
-							
 							List<URL> newURLs = new LinkedList<URL>();
-							
 							for(Element e : linklist)
 							{
 								String href = e.attr("href");
@@ -338,13 +353,22 @@ public class XPathCrawler {
 							mhc.connectTo(nextURL);
 							mhc.send("GET");
 							rule.access();
+							System.out.println(nextURL+" : XML Downloading...");
 							String [] handb = mhc.receive();
 							if (handb[1].length() > MaximumSize)
 								return false;
 							// store and no more crawling for XML
 						}
-
-						
+						else
+						{
+							System.out.println(nextURL+" : Content type mismatch, discarding...");
+							return false;
+						}
+					}	// content-type
+					else
+					{
+						System.out.println(nextURL+" : Content type not found, discarding...");
+						return false;
 					}
 				} catch (MyClientException e) {
 					// TODO Auto-generated catch block
