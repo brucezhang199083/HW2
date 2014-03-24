@@ -16,14 +16,16 @@ public class BDBStorageTest extends TestCase {
 	{
 		BDBStorage bdbStorage = new BDBStorage("/tmp/abc");
 		bdbStorage.putPasswordInUser("bruce", "12345678");
+		bdbStorage.putPasswordInUser("bruce", "87654321");
 		bdbStorage.sync();
 
 		assertFalse(bdbStorage.checkPasswordOfUser("bruce", "4422442244"));
 		assertFalse(bdbStorage.checkPasswordOfUser("steanna", "4422442244"));
-		assertTrue(bdbStorage.checkPasswordOfUser("bruce", "12345678"));
+		assertTrue(bdbStorage.checkPasswordOfUser("bruce", "87654321"));
+		bdbStorage.closeDatabase();
+		bdbStorage.removeAllDatabase();
+		bdbStorage.sync();
 		
-		bdbStorage.close();
-
 	}
 	
 

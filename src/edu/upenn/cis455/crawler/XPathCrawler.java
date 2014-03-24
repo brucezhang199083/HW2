@@ -18,13 +18,11 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.tidy.Tidy;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 
 import edu.upenn.cis455.client.MyClientException;
 import edu.upenn.cis455.client.MyHttpClient;
@@ -58,6 +56,8 @@ public class XPathCrawler {
 	{
 		MyHttpClient mhc = new MyHttpClient();
 		String host = getHostAndPort(url);
+		// If not visited, create the robots map for this site
+		// Else, we return
 		RobotRules robot = new RobotRules();
 		if (!robotsMap.containsKey(host))
 			this.robotsMap.put(host, robot);
@@ -66,13 +66,17 @@ public class XPathCrawler {
 		mhc.connectTo(host+"/robots.txt");
 		try {
 			mhc.send("GET");
-			String [] handb = mhc.receive();
+			String [] handb = null;
+			try
+			{
+				handb = mhc.receive();
+			}
+			catch (MyClientException e)
+			{
+				e.printStackTrace();
+				return robot;
+			}
 			mhc.closeConnection();
-			
-
-			// If not visited, create the robots map for this site
-			// Else, we return
-			
 
 			StringReader robotsReader = new StringReader(handb[1]);
 			BufferedReader brRobot = new BufferedReader(robotsReader);
@@ -171,7 +175,7 @@ public class XPathCrawler {
 			return;
 		}
 		XPathCrawler instance = new XPathCrawler();
-		BDBStorage bdb = new BDBStorage(StoragePath);
+		//BDBStorage bdb = new BDBStorage(StoragePath);
 		try {
 			URL seeds = null;
 			if (!StartingPage.startsWith("http://"))
@@ -216,11 +220,14 @@ public class XPathCrawler {
 		}
 		else
 		{
-			System.out.println(nextURL);
+			
 			if (crawledSet.contains(nextURL.toString()))
 				return false;
 			else
+			{
 				crawledSet.add(nextURL.toString());
+				System.out.println(nextURL);
+			}
 			RobotRules rule = this.parseRobotsTxt(nextURL);
 			if (!rule.isCrawlable())
 			{
@@ -236,7 +243,18 @@ public class XPathCrawler {
 				// Send head to get info
 				try {
 					mhc.send("HEAD");
-					String [] headerarray = mhc.receive();
+					System.out.println("Head sended");
+					String [] headerarray = null;
+					try
+					{
+						headerarray = mhc.receive();
+					}
+					catch (MyClientException e)
+					{
+						e.printStackTrace();
+						return false;
+					}
+					//System.out.println(headerarray[0]);
 					mhc.closeConnection();
 					HashMap<String, List<String> > headerMap = mhc.parseHeader(headerarray[0]);
 					//System.out.println(headerMap);
@@ -257,6 +275,7 @@ public class XPathCrawler {
 							mhc.connectTo(nextURL);
 							rule.access();
 							mhc.send("GET");
+							System.out.println("Get sended");
 							String [] handb = mhc.receive();
 							mhc.closeConnection();
 							if (handb[1].length() > MaximumSize)
@@ -264,58 +283,19 @@ public class XPathCrawler {
 								System.out.println("Content Length exceeds the limit");
 								return false;
 							}
-							Tidy tidy = new Tidy();
-							tidy.setTidyMark(false);
-							tidy.setXmlOut(true);
-							tidy.setShowWarnings(false);
-							tidy.setQuiet(true);
-							tidy.setForceOutput(true);
 
-							
-							ByteArrayInputStream bin = new ByteArrayInputStream(handb[1].getBytes());
-							ByteArrayOutputStream bout = new ByteArrayOutputStream();
-							tidy.parse(bin, bout);
-							String xml = bout.toString();
-							DocumentBuilder dbuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-							Document doc = null;
-							try
-							{
-								doc = dbuilder.parse(new ByteArrayInputStream(xml.getBytes()));
-							}
-							catch (SAXParseException e)
-							{
-								System.out.println("Parse Error!");
-								return false;
-							}
+							Document d = Jsoup.parse(handb[1]);
+							Elements linklist = d.select("a[href]");
 							// go on crawling
 							
 							List<URL> newURLs = new LinkedList<URL>();
-							NodeList nodelist = doc.getElementsByTagName("a");
-							NodeList nodelist2 = doc.getElementsByTagName("A");
-							List<Element> anchors = new LinkedList<Element>();
-							for(int i = 0 ; i < nodelist.getLength(); i++)
+							
+							for(Element e : linklist)
 							{
-								Node n = nodelist.item(i);
-								if(n.getNodeType() == Node.ELEMENT_NODE)
-								{
-									anchors.add((Element)n);
-								}
-							}
-							for(int i = 0 ; i < nodelist2.getLength(); i++)
-							{
-								Node n = nodelist2.item(i);
-								if(n.getNodeType() == Node.ELEMENT_NODE)
-								{
-									anchors.add((Element)n);
-								}
-							}
-
-							for(Element e : anchors)
-							{
-								String href = e.getAttribute("href");
+								String href = e.attr("href");
 								if (href.equals(""))	// Try Upper case
 								{
-									href = e.getAttribute("HREF");
+									href = e.attr("HREF");
 								}
 								if (href.equals(""))	// There is no href...
 								{
@@ -335,6 +315,12 @@ public class XPathCrawler {
 									}
 									else
 									{
+										if(href.matches("[^:/]*:.*"))
+										{
+											String [] protocolpart = href.split(":");
+											if (!protocolpart[0].equalsIgnoreCase("http"))
+												continue;
+										}
 										String [] urlpart = nextURL.toString().split("\\?");
 										String start = urlpart[0];
 										if(start.endsWith("/"))
@@ -349,9 +335,9 @@ public class XPathCrawler {
 						}
 						else if(type.matches(".*/xml"))
 						{
-
 							mhc.connectTo(nextURL);
 							mhc.send("GET");
+							rule.access();
 							String [] handb = mhc.receive();
 							if (handb[1].length() > MaximumSize)
 								return false;
@@ -363,14 +349,7 @@ public class XPathCrawler {
 				} catch (MyClientException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} catch (ParserConfigurationException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (SAXException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
+				} 
 			}
 		}
 		return false;

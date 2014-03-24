@@ -48,7 +48,7 @@ public class BDBStorage {
 		DatabaseEntry key = new DatabaseEntry(username.getBytes());
 		DatabaseEntry data = new DatabaseEntry(baos.toByteArray());
 		
-		if(dbUser.putNoDupData(null, key, data) == OperationStatus.SUCCESS)
+		if(dbUser.put(null, key, data) == OperationStatus.SUCCESS)
 			return true;
 		return false;
 	}
@@ -72,13 +72,12 @@ public class BDBStorage {
 		else 
 			return false;
 	}
-	public void close()
+	public void closeDatabase()
 	{
 		dbUser.close();
 		dbDoc.close();
 		dbDocMod.close();
 		dbXPath.close();
-		myEnv.close();
 	}
 	
 	public void removeAllDatabase()	//Should be very careful when calling this function

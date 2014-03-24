@@ -51,6 +51,26 @@ public class RobotRules implements Serializable
 		long now = (new Date()).getTime();
 		return (now - LastAccess > CrawlDelay*1000 );
 	}
+	public boolean isDisallowed(String path)
+	{
+		for(String prefix : Disallows)
+		{
+			if(prefix.contains("*"))
+			{
+				String pattern = prefix.replace("*", "[^/]*");
+				pattern = pattern.replace("?", "\\?");
+				pattern = pattern+".*";
+				if (path.matches(pattern))
+					return true;
+			}
+			else
+			{
+				if (path.startsWith(prefix))
+					return true;
+			}
+		}
+		return false;
+	}
 	public void access()
 	{
 		LastAccess = (new Date()).getTime();

@@ -16,9 +16,5 @@ public class XPathCrawlerTest extends TestCase {
 		xc.parseRobotsTxt(host);
 		assertEquals(xc.robotsMap.toString(), "{"+hstring+"=CrawlDelay: 5, Disallows: [/marie/private/, /foo/]}");
 	}
-	public void testTest () throws MalformedURLException
-	{
-		URL url = new URL("http://www.abc.com/def/ghi");
-		System.out.println(url.toExternalForm());
-	}
+	
 }
