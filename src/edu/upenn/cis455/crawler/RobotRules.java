@@ -1,9 +1,12 @@
 package edu.upenn.cis455.crawler;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashSet;
 
-public class RobotRules {
+public class RobotRules implements Serializable
+{
+	private static final long serialVersionUID = -4927450621832951076L;
 	int CrawlDelay;
 	long LastAccess;
 	HashSet<String> Disallows;
