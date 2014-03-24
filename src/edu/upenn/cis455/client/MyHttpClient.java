@@ -1,4 +1,4 @@
-package edu.upenn.cis455.Client;
+package edu.upenn.cis455.client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,12 +6,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 
 public class MyHttpClient {
 	
@@ -30,6 +35,11 @@ public class MyHttpClient {
 			m_url = new URL(url);
 		else
 			m_url = new URL("http://"+url);
+		connectTo(m_url);
+	}
+	public void connectTo(URL url) throws IOException
+	{
+		m_url = url;
 		String host = m_url.getHost();
 		int port = m_url.getPort();
 		if (port == -1)
@@ -100,5 +110,60 @@ public class MyHttpClient {
 		return socketInputStream;
 	}
 	
-	
+	public HashMap <String, List<String> > parseHeader(String str) throws IOException
+	{
+		BufferedReader bsr = new BufferedReader(new StringReader(str));
+		HashMap <String, List<String> > m_header = new HashMap<String, List<String> >();
+		String lastHeader = null;
+		boolean headerend = false;
+		while(true)	//Create the header map
+	    {
+	    	String s1 = bsr.readLine();
+	    	////System.out.println(s1);
+	    	if(s1 != null)
+	    	{
+	    		if(s1.isEmpty())
+	    		{
+	    			headerend = true;
+	    			continue;
+	    		}
+	    		if(!headerend)
+	    		{
+	    			if(Character.isWhitespace(s1.charAt(0)))
+	    			{
+	    				if(lastHeader == null)
+	    				{
+	    					//TODO: Invalid request format, 
+	    					
+	    				}
+	    				List<String> a = m_header.get(lastHeader);
+	    				a.set(a.size()-1,a.get(a.size()-1).concat(s1.trim()));
+	    				continue;
+	    			}
+		    		String headerpair[] = s1.split(":", 2);
+		    		if(headerpair.length != 2)
+		    		{
+		    			//out.println("Wrong Header Format");
+		    			
+		    		}
+		    		else
+		    		{
+		    			List<String> a = m_header.get(headerpair[0].toLowerCase());
+		    			if(a != null)
+		    				a.add(headerpair[1].trim());
+		    			else
+		    			{
+		    				List<String> n = new ArrayList<String>();
+		    				n.add(headerpair[1].trim());
+			    			m_header.put(headerpair[0].toLowerCase(), n);
+			    			lastHeader = headerpair[0].toLowerCase();
+		    			}
+		    		}
+	    		}
+	    	}
+	    	else
+	    		break;
+	    }
+		return m_header;
+	}
 }

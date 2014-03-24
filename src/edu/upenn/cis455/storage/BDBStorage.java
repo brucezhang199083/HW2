@@ -13,6 +13,7 @@ public class BDBStorage {
 	public BDBStorage(String path)
 	{
 		EnvironmentConfig ec = new EnvironmentConfig();
+		ec.setAllowCreate(true);
 		File storepath = new File(path);
 		if(!storepath.isDirectory())
 		{
