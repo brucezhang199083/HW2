@@ -11,6 +11,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -22,38 +23,94 @@ import org.w3c.dom.Document;
 import org.w3c.tidy.Tidy;
 
 import edu.upenn.cis455.client.MyHttpClient;
+import edu.upenn.cis455.storage.BDBStorage;
+import edu.upenn.cis455.storage.MyChannel;
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 
 @SuppressWarnings("serial")
 public class XPathServlet extends HttpServlet {
 
 	int numberOfXPath = 1;
+	ArrayList<MyChannel> currentChannels;
+	BDBStorage storage;
+	
+	@Override
+	public void init(ServletConfig config) throws ServletException {
+		// TODO Auto-generated method stub
+		super.init(config);
+//		String bdbpath = config.getInitParameter("BDBstore");
+//		if (bdbpath == null)
+//			bdbpath = config.getServletContext().getInitParameter("BDBstore");
+//		storage = new BDBStorage(bdbpath);
+//		
+	}
+		
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		super.destroy();
+//		storage.closeDatabase();
+//		storage.closeEnvironment();
+	}
+
+
 	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		PrintWriter pw = resp.getWriter();
 		resp.setContentType("text/html");
+		MyServletHelper.WriteHTMLHead(pw);
+		pw.println("<body class=\"metro\" >");
+		pw.println("<h1 align=\"center\">Channel Subscription Servlet -- CIS 555 Homework 2 Milestone 2</h1><br/>");
+		pw.println("<div class=\"container\" align=\"center\" style=\"width: 80%;\">");
+		// Login or Welcome
+		// TODO: CHECK SESSION
+		// Login:
+		pw.println("<div class=\"panel place-left\" style=\"width: 35%;\">");
+		pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Login</div>");
+		pw.println("<div class=\"panel-content\" style=\"display: block;\">");
+		// Login message and button:
+		pw.println("<p style=\"font-size: large;\">Login or Sign up now to view, create and edit your own channels!</p></br>");
+		pw.println("<button id=\"loginButton\" class=\"button primary\" >" +
+				"<p style=\"font-size: x-large;margin-top: 7px;margin-left: 7px;margin-right:7px;\">Login / SignUp</p></button></div></div>");
+		// Channel list panel
+		pw.println("<div class=\"panel place-right\" style=\"width: 61%;\">");
+		pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Channel List</div>");
+		pw.println("<div class=\"panel-content\">");
+		// channel list accordion
+		// No channel for now. Try to be the first one to create some channels!
+		pw.println("<div class=\"accordion with-marker\" data-role=\"accordion\">");
+		pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading\">HEADING</a>");
+		pw.println("<div class=\"content\" ><h3>contents</h3></div></div>");
+		pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading\">HEADING2</a>");
+		pw.println("<div class=\"content\" ><h3>contents2</h3></div></div>");
+		pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading\">HEADING3</a>");
+		pw.println("<div class=\"content\" ><h3>contents3</h3></div></div></div></div>");
+
+		MyServletHelper.WriteLoginButtonScript(pw);
+		pw.println(	"</body></html>");
 		
-		pw.println("<html><head><h2>");
-		pw.println("XPath Servlet 1.0 -- CIS 555 Homework 2 Milestone 1");
-		pw.println("</h2></head><body>");
-		pw.println("<form action='"+req.getContextPath()+"/xpath' method='POST'>");
-		pw.println("<h3>Enter URL of an HTML or XML (Maximum length is 2000 chars): </h3><br/>");
-		pw.println("<input size=80 name=urlofxml type=text maxlength=2000><br/>");
-		pw.println("<h3>Enter XPaths you want to evaluate: </h3>");
-		for (int i = 0; i < numberOfXPath; i++)
-		{
-			pw.println("<br/><input size=50 name='xpathnum"+String.valueOf(i)+"' type=text >");
-		}
-		
-		pw.println("<input style=\"overflow: visible; height: 0; width: 0;" +
-				" margin: 0; border: 0; padding: 0; display: block;\" " +
-				"type=\"submit\" name=\"done\" value=\"Submit\"/>");
-		pw.println("<input type=submit name='another' value='Add Another'>");
-		pw.println("<input type=submit name='done' value='Submit'></form>");
-		pw.println("</body></html>");
+//		pw.println("<html><head><h2>");
+//		pw.println("</h2></head><body>");
+//		pw.println("<form action='"+req.getContextPath()+"/xpath' method='POST'>");
+//		pw.println("<h3>Enter URL of an HTML or XML (Maximum length is 2000 chars): </h3><br/>");
+//		pw.println("<input size=80 name=urlofxml type=text maxlength=2000><br/>");
+//		pw.println("<h3>Enter XPaths you want to evaluate: </h3>");
+//		for (int i = 0; i < numberOfXPath; i++)
+//		{
+//			pw.println("<br/><input size=50 name='xpathnum"+String.valueOf(i)+"' type=text >");
+//		}
+//		
+//		pw.println("<input style=\"overflow: visible; height: 0; width: 0;" +
+//				" margin: 0; border: 0; padding: 0; display: block;\" " +
+//				"type=\"submit\" name=\"done\" value=\"Submit\"/>");
+//		pw.println("<input type=submit name='another' value='Add Another'>");
+//		pw.println("<input type=submit name='done' value='Submit'></form>");
+//		pw.println("</body></html>");
 	}
+
+
 
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp)

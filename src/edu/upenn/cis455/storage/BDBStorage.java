@@ -6,9 +6,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
+import com.sleepycat.je.Cursor;
+import com.sleepycat.je.CursorConfig;
 import com.sleepycat.je.Database;
 import com.sleepycat.je.DatabaseConfig;
 import com.sleepycat.je.DatabaseEntry;
@@ -131,6 +135,25 @@ public class BDBStorage {
 			return null;
 	}
 	
+	public List<MyChannel> getAllChannels() throws IOException, ClassNotFoundException
+	{
+		List<MyChannel> channels = new ArrayList<MyChannel>();
+		DatabaseEntry key = new DatabaseEntry();
+		DatabaseEntry data = new DatabaseEntry();
+		CursorConfig cc = new CursorConfig();
+		Cursor cursor = dbXPath.openCursor(null, cc);
+		OperationStatus os = cursor.getFirst(key, data, null);
+		while(os == OperationStatus.SUCCESS)
+		{
+			ByteArrayInputStream bais = new ByteArrayInputStream(data.getData());
+			ObjectInputStream ois = new ObjectInputStream(bais);
+			channels.add(((MyChannel)ois.readObject()));
+			os = cursor.getNext(key, data, null);
+		}
+		cursor.close();
+		return channels;
+	}
+	
 	public void putDocument(String url, String raw)
 	{
 		DatabaseEntry key = new DatabaseEntry(url.getBytes());
@@ -193,5 +216,7 @@ public class BDBStorage {
 		closeDatabase();
 		myEnv.close();
 	}
+	
+	
 	
 }

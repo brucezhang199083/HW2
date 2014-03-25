@@ -211,7 +211,6 @@ public class XPathCrawler {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
 
 	Boolean crawlNext(BDBStorage storage) throws IOException, InterruptedException
@@ -370,9 +369,14 @@ public class XPathCrawler {
 							rule.access();
 							System.out.println(nextURL+" : XML Downloading...");
 							String [] handb = mhc.receive();
-							
 							if (handb[1].length() > MaximumSize)
+							{
+								System.out.println(nextURL+" : File size exceeds limit, discarding...");
 								return false;
+							}
+
+							storage.putDocument(nextURL.toString(), handb[1]);
+							
 							DocumentBuilderFactory factory  =  DocumentBuilderFactory.newInstance(); 
 							DocumentBuilder documentBuilder;
 							org.w3c.dom.Document doc = null;
@@ -394,6 +398,7 @@ public class XPathCrawler {
 							System.out.println(nextURL+" : Content type mismatch, discarding...");
 							return false;
 						}
+						storage.sync();
 					}	// content-type
 					else
 					{

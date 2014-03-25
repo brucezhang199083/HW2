@@ -43,12 +43,22 @@ public class BDBStorageTest extends TestCase {
 		xp.add("/org/org");
 		urls.add("foo.bar");
 		bdbStorage.addChannel("zhanghao", "channel1", "http://foo.bar.com", xp.toArray(new String[0]), urls.toArray(new String[0]), false);
+		bdbStorage.addChannel("bruce", "channel2", "http://foo.bar.com", xp.toArray(new String[0]), urls.toArray(new String[0]), false);
 		bdbStorage.sync();
 		MyChannel mc = bdbStorage.getChannel("zhanghao", "channel1");
 		assertEquals(mc.getChannelName(), "channel1");
 		assertEquals(mc.getUserName(), "zhanghao");
 		assertEquals(mc.getXPaths().get(0), "/abc/def");
 		assertEquals(mc.getURLs().get(0), "foo.bar");
+		
+		List<MyChannel> chs = bdbStorage.getAllChannels();
+		
+		assertEquals(chs.get(0).getChannelName(), "channel1");
+		assertEquals(chs.get(0).getUserName(), "zhanghao");
+		
+		assertEquals(chs.get(1).getChannelName(), "channel2");
+		assertEquals(chs.get(1).getUserName(), "bruce");
+		
 		bdbStorage.closeDatabase();
 		bdbStorage.removeAllDatabase();
 		bdbStorage.sync();
