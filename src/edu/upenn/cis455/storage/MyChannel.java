@@ -16,15 +16,19 @@ public class MyChannel implements Serializable {
 	String userName;
 	String channelName;
 	String xslURL;
-	List<String> XPaths = new ArrayList<String>();
-	List<String> URLs = new ArrayList<String>();
+	ArrayList<String> XPaths = new ArrayList<String>();
+	ArrayList<String> URLs = new ArrayList<String>();
 	public MyChannel(String userName, String channelName, String xslURL,
 			String[] xpaths, String [] urls) {
 		this.userName = userName;
 		this.channelName = channelName;
 		this.xslURL = xslURL;
-		XPaths = Arrays.asList(xpaths);
-		URLs = Arrays.asList(urls);
+		XPaths = new ArrayList<String>();
+		URLs =  new ArrayList<String>();
+		for(String s : xpaths)
+			XPaths.add(s);
+		for(String s : urls)
+			URLs.add(s);
 	}
 	
 	public String getUserName() {
@@ -50,7 +54,9 @@ public class MyChannel implements Serializable {
 		return XPaths;
 	}
 	public void setXPaths(String [] xPaths) {
-		XPaths = Arrays.asList(xPaths);
+		XPaths =  new ArrayList<String>();
+		for(String s : xPaths)
+			XPaths.add(s);
 	}
 	
 	public List<String> getURLs()
@@ -60,7 +66,9 @@ public class MyChannel implements Serializable {
 	
 	public void setURLs(String [] urls) 
 	{
-		URLs = Arrays.asList(urls);
+		URLs =  new ArrayList<String>();
+		for(String s : urls)
+			URLs.add(s);
 	}
 	
 	public void addURL(String url)

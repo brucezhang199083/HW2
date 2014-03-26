@@ -90,7 +90,7 @@ public class MyHttpClient {
 		String line = br.readLine();
 		if (line == null)
 			throw new MyClientException("NOTHING TO READ!!!");
-		if(!line.matches("(?i)HTTP/1\\..\\s*[23]0[0-9].*"))
+		if(!line.matches("(?i)HTTP/1\\..\\s*[23]0[0-2].*"))
 		{
 			throw new MyClientException("CONTENT NOT ACCESSABLE! "+m_url+"Detail:"+line);
 		}

@@ -13,6 +13,7 @@ import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -47,15 +48,16 @@ public class XPathServlet extends HttpServlet {
 	int numberOfXPath = 1;
 	HashMap<String, List<MyChannel>> currentChannelMap;
 	BDBStorage storage;
-
+	String storagePath;
+	
 	@Override
 	public void init(ServletConfig config) throws ServletException {
 		// TODO Auto-generated method stub
 		super.init(config);
-		String bdbpath = config.getInitParameter("BDBstore");
-		if (bdbpath == null)
-			bdbpath = config.getServletContext().getInitParameter("BDBstore");
-		storage = new BDBStorage(bdbpath);
+		storagePath = config.getInitParameter("BDBstore");
+		if (storagePath == null)
+			storagePath = config.getServletContext().getInitParameter("BDBstore");
+		storage = new BDBStorage(storagePath);
 		// build current user channel map;
 		currentChannelMap = new HashMap<String, List<MyChannel>>();
 		try {
@@ -71,6 +73,7 @@ public class XPathServlet extends HttpServlet {
 					currentChannelMap.put(mc.getUserName(), userChannel);
 				}
 			}
+			storage.closeEnvironment();
 		} catch (ClassNotFoundException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -78,17 +81,10 @@ public class XPathServlet extends HttpServlet {
 	}
 
 	@Override
-	public void destroy() {
-		// TODO Auto-generated method stub
-		storage.sync();
-		storage.closeDatabase();
-		storage.closeEnvironment();
-		super.destroy();
-	}
-
-	@Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
+		storage = new BDBStorage(storagePath);
+		
 		PrintWriter pw = resp.getWriter();
 		resp.setContentType("text/html");
 		MyServletHelper.WriteHTMLHead(pw);
@@ -108,6 +104,8 @@ public class XPathServlet extends HttpServlet {
 					MyServletHelper.WriteLoginSuccessPanel(pw,
 							"User Logged out! See you next time, " + un2 + "!");
 					MyServletHelper.WriteHTMLTail(pw);
+
+					storage.closeEnvironment();
 					return;
 				}
 				if ((un == null || pswd == null)
@@ -115,6 +113,8 @@ public class XPathServlet extends HttpServlet {
 					MyServletHelper.WriteLoginFailPanel(pw,
 							"Username or Password can not be empty!");
 					MyServletHelper.WriteHTMLTail(pw);
+
+					storage.closeEnvironment();
 					return;
 				} else {
 					if (opt.equals("LOGIN")) // login clicked
@@ -126,11 +126,15 @@ public class XPathServlet extends HttpServlet {
 										"Successfully Logged in! Now will access as user :"
 												+ un);
 								MyServletHelper.WriteHTMLTail(pw);
+
+								storage.closeEnvironment();
 								return;
 							} else {
 								MyServletHelper.WriteLoginFailPanel(pw,
 										"Username or Password is incorrect!");
 								MyServletHelper.WriteHTMLTail(pw);
+
+								storage.closeEnvironment();
 								return;
 							}
 
@@ -151,19 +155,22 @@ public class XPathServlet extends HttpServlet {
 										"Username Already Exists!");
 							}
 							MyServletHelper.WriteHTMLTail(pw);
+
+							storage.closeEnvironment();
 							return;
 						} else {
 							MyServletHelper
 									.WriteLoginFailPanel(pw,
 											"Username contains invalid character, should be in [_a-zA-Z0-9]");
 							MyServletHelper.WriteHTMLTail(pw);
+
+							storage.closeEnvironment();
 							return;
 						}
 					}
 				}
 			}
 		}
-
 		// and Session
 		String currentuser = (String) session.getAttribute("currentuser");
 		if (currentuser != null) {
@@ -209,6 +216,9 @@ public class XPathServlet extends HttpServlet {
 			}
 			MyServletHelper.WriteCreateButtonScript(pw);
 			MyServletHelper.WriteHTMLTail(pw);
+
+			storage.closeEnvironment();
+			return;
 		} else {
 			// Login:
 			pw.println("<div class=\"panel place-left\" style=\"width: 35%;\">");
@@ -249,6 +259,9 @@ public class XPathServlet extends HttpServlet {
 			}
 			MyServletHelper.WriteLoginButtonScript(pw);
 			MyServletHelper.WriteHTMLTail(pw);
+
+			storage.closeEnvironment();
+			return;
 		}
 		// pw.println("<html><head><h2>");
 		// pw.println("</h2></head><body>");
@@ -275,7 +288,8 @@ public class XPathServlet extends HttpServlet {
 
 		// String another = req.getParameter("another");
 		// String done = req.getParameter("done");
-
+		storage = new BDBStorage(storagePath);
+		
 		PrintWriter pw = resp.getWriter();
 
 		String opt = req.getParameter("buttonclicked");
@@ -293,6 +307,7 @@ public class XPathServlet extends HttpServlet {
 						.WriteLoginFailPanel(pw,
 								"Channel name, XSLT URL and XPaths must all not be empty!");
 				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
 				return;
 			}
 			String nl = System.getProperty("line.separator");
@@ -317,11 +332,13 @@ public class XPathServlet extends HttpServlet {
 					MyServletHelper.WriteLoginSuccessPanel(pw,
 							"Channel successfully added!");
 					MyServletHelper.WriteHTMLTail(pw);
+					storage.closeEnvironment();
 					return;
 				} else {
 					MyServletHelper.WriteLoginFailPanel(pw,
 							"Channel name already exists!");
 					MyServletHelper.WriteHTMLTail(pw);
+					storage.closeEnvironment();
 					return;
 				}
 			} catch (ParserConfigurationException e) {
@@ -361,12 +378,14 @@ public class XPathServlet extends HttpServlet {
 						listChannel.remove(todelete);
 					MyServletHelper.WriteLoginSuccessPanel(pw, "Successfully deleted channel : "+target);
 					MyServletHelper.WriteHTMLTail(pw);
+					storage.closeEnvironment();
 					return;
 				}
 				else
 				{
 					MyServletHelper.WriteLoginFailPanel(pw, "Sorry, weird things happened...storage fail");
 					MyServletHelper.WriteHTMLTail(pw);
+					storage.closeEnvironment();
 					return;
 				}
 			}
@@ -374,6 +393,7 @@ public class XPathServlet extends HttpServlet {
 			{
 				MyServletHelper.WriteLoginFailPanel(pw, "Sorry, weird things happened...target null");
 				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
 				return;
 			}
 		}
@@ -394,8 +414,7 @@ public class XPathServlet extends HttpServlet {
 				}
 			}
 			List<String> urls = todisplay.getURLs();
-			
-			
+			writeFormattedXML(urls, pw);
 		}
 		// Switch between add another xpath and submit the form
 		// if(another != null && another.equals("Add Another"))
@@ -572,7 +591,9 @@ public class XPathServlet extends HttpServlet {
 			// Use dom parser
 			String url = new String(key.getData());
 			System.out.println("URL: "+url);
-			if (url.endsWith(".xml"))
+			String type = storage.getType(url);
+			System.out.println("TYPE: "+type);
+			if (type.equals("xmls"))
 			{
 				DocumentBuilder db = DocumentBuilderFactory.newInstance()
 						.newDocumentBuilder();
@@ -601,10 +622,12 @@ public class XPathServlet extends HttpServlet {
 		for(String u : urls)
 		{
 			String raw = storage.getDocument(u);
+			Long modified = storage.getModified(u);
 			raw = raw.replaceAll("<\\?[^>]*\\?>", "");
 			pw.println("<document ");
-			pw.println("crawled=");
-			//sdf.parse(new Date(Long.valueOf(new String())))
+			pw.println("crawled=\"");
+			pw.println(sdf.format(new Date(modified)));
+			pw.println("\" location=\""+u+"\">");
 			pw.println(raw);
 			pw.println("</document>");
 		}

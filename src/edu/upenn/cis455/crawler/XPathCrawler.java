@@ -9,6 +9,8 @@ import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -277,6 +279,7 @@ public class XPathCrawler {
 					//System.out.println(headerarray[0]);
 					mhc.closeConnection();
 					HashMap<String, List<String> > headerMap = mhc.parseHeader(headerarray[0]);
+					
 					//System.out.println(headerMap);
 					if (headerMap.containsKey("content-length"))
 					{
@@ -292,31 +295,57 @@ public class XPathCrawler {
 						String type = headerMap.get("content-type").get(0).split(";")[0].trim();					
 						if (type.matches("text/html"))
 						{
-							// retrieve the body and push links\
-							mhc.connectTo(nextURL);
-							rule.access();
-							mhc.send("GET");
-							System.out.println(nextURL+" : HTML Downloading...");
-							System.out.println("Get sended");
 							String [] handb = null;
-							try
+							boolean notmodified = false;
+							if (headerMap.containsKey("last-modified"))
 							{
-								handb = mhc.receive();
+								String date = headerMap.get("last-modified").get(0);
+								SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+								try {
+									long mdf = sdf.parse(date).getTime();
+									long crawled = storage.getModified(nextURL.toString());
+									if(mdf < crawled)
+									{
+										System.out.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										notmodified = true;
+										String fromdb = storage.getDocument(nextURL.toString());
+										handb = new String[2];
+										handb[1] = fromdb;
+									}
+								} catch (ParseException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 							}
-							catch (MyClientException e)
+							if (!notmodified)
 							{
-								System.out.println("Error when receiving, discarding...");
-								return false;
+							// retrieve the body and push links\
+								mhc.connectTo(nextURL);
+								rule.access();
+								mhc.send("GET");
+								System.out.println(nextURL+" : HTML Downloading...");
+								System.out.println("Get sended");
+								try
+								{
+									handb = mhc.receive();
+								}
+								catch (MyClientException e)
+								{
+									System.out.println("Error when receiving, discarding...");
+									return false;
+								}
+								mhc.closeConnection();
+								if (handb[1].length() > MaximumSize)
+								{
+									System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									return false;
+								}
+								else
+								{
+									// store raw html
+									storage.putDocument("html", nextURL.toString(), handb[1]);
+								}
 							}
-							mhc.closeConnection();
-							if (handb[1].length() > MaximumSize)
-							{
-								System.out.println(nextURL+" : File size exceeds limit, discarding...");
-								return false;
-							}
-							//Store raw html first
-							storage.putDocument("html", nextURL.toString(), handb[1]);
-							
 							// parse Document using Jsoup
 							Document d = Jsoup.parse(handb[1]);
 							Elements linklist = d.select("a[href]");
@@ -367,19 +396,42 @@ public class XPathCrawler {
 						}
 						else if(type.matches(".*/xml"))
 						{
-							mhc.connectTo(nextURL);
-							mhc.send("GET");
-							rule.access();
-							System.out.println(nextURL+" : XML Downloading...");
-							String [] handb = mhc.receive();
-							if (handb[1].length() > MaximumSize)
+							String [] handb = null;
+							boolean notmodified = false;
+							if (headerMap.containsKey("last-modified"))
 							{
-								System.out.println(nextURL+" : File size exceeds limit, discarding...");
-								return false;
+								String date = headerMap.get("last-modified").get(0);
+								SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+								try {
+									long mdf = sdf.parse(date).getTime();
+									long crawled = storage.getModified(nextURL.toString());
+									if(mdf < crawled)
+									{
+										System.out.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										notmodified = true;
+										String fromdb = storage.getDocument(nextURL.toString());
+										handb = new String[2];
+										handb[1] = fromdb;
+									}
+								} catch (ParseException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 							}
-
-							storage.putDocument("xml", nextURL.toString(), handb[1]);
-							
+							if (!notmodified)
+							{
+								mhc.connectTo(nextURL);
+								mhc.send("GET");
+								rule.access();
+								System.out.println(nextURL+" : XML Downloading...");
+								handb = mhc.receive();
+								if (handb[1].length() > MaximumSize)
+								{
+									System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									return false;
+								}
+								storage.putDocument("xmls", nextURL.toString(), handb[1]);
+							}
 							DocumentBuilderFactory factory  =  DocumentBuilderFactory.newInstance(); 
 							DocumentBuilder documentBuilder;
 							org.w3c.dom.Document doc = null;
