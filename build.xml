@@ -27,7 +27,20 @@
             </classpath>
         </javac>
     </target>
-    
+
+    <target name="compile-client" description="Compiles the client">
+        <mkdir dir="${classes.dir}"/>
+        <javac srcdir="src/edu/upenn/cis455/client" destdir="${classes.dir}" debug="on" deprecation="off" optimize="on" includeAntRuntime="no">
+            <classpath>
+                <fileset dir="${inputlib.dir}">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+
+
     <target name="compile-storage" depends="compile-xpathengine" description="Compiles the storage system">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="src/edu/upenn/cis455/storage" destdir="${classes.dir}" debug="on" deprecation="off" optimize="on" includeAntRuntime="no">
@@ -39,7 +52,7 @@
         </javac>
     </target>
     
-    <target name="compile-crawler" depends="compile-xpathengine,compile-storage" description="Compiles the crawler">
+    <target name="compile-crawler" depends="compile-client,compile-xpathengine,compile-storage" description="Compiles the crawler">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="src/edu/upenn/cis455/crawler" destdir="${classes.dir}" debug="on" deprecation="off" optimize="on" includeAntRuntime="no">
             <classpath>
@@ -50,7 +63,7 @@
         </javac>
     </target>
     
-    <target name="compile-servlet" depends="compile-xpathengine,compile-storage" description="Compiles the servlet">
+    <target name="compile-servlet" depends="compile-client,compile-xpathengine,compile-storage" description="Compiles the servlet">
         <mkdir dir="${classes.dir}"/>
         <javac srcdir="src/edu/upenn/cis455/servlet" destdir="${classes.dir}" debug="on" deprecation="off" optimize="on" includeAntRuntime="no">
             <classpath>
@@ -59,7 +72,9 @@
                 </fileset>
             </classpath>
         </javac>
-    </target>
+     </target>
+
+	
     
     <target name="compile-tests" description="compiles test Java source code">
       <mkdir dir="${test-classes.dir}"/>
@@ -110,12 +125,17 @@
             <fileset dir="${inputlib.dir}">
                 <include name="*.jar"/>
             </fileset>
+    	</copy>
+	<copy todir="${build.target.dir}${file.separator}" overwrite="true">
+	    <fileset dir="${basedir}">
+		    <include name="metro/**/*"/>
+            </fileset>
         </copy>
         <jar destfile="servlet.war" update="true">
             <fileset dir="target">
                 <include name="**/*.class"/>
                 <include name="**/*.jar"/>
-            	<include name="*.css"/>
+		<include name="metro/**/*"/>
                 <include name="WEB-INF/web.xml"/>
             </fileset>
         </jar>
