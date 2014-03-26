@@ -18,7 +18,7 @@
     
    <servlet-mapping>
      <servlet-name>xpath</servlet-name>
-     <url-pattern>/xpath</url-pattern>
+     <url-pattern>/xpath/*</url-pattern>
    </servlet-mapping>  
 
    <!-- add any additional servlets and servlet mappings here -->
