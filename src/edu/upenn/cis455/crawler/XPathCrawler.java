@@ -31,6 +31,7 @@ import org.xml.sax.SAXException;
 import edu.upenn.cis455.client.MyClientException;
 import edu.upenn.cis455.client.MyHttpClient;
 import edu.upenn.cis455.storage.*;
+import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 
 public class XPathCrawler {
 	// Static arguments
@@ -151,7 +152,7 @@ public class XPathCrawler {
 	}
 	
 	// Main
-	public static void main(String args[]) throws InterruptedException
+	public static void main(String args[]) throws InterruptedException, ClassNotFoundException
 	{
 		/* TODO: Implement crawler */
 		if (args.length != 3 && args.length != 4)
@@ -207,13 +208,15 @@ public class XPathCrawler {
 			}
 			
 			System.out.println(instance.crawledSet.size());
+			bdb.closeDatabase();
+			bdb.closeEnvironment();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	Boolean crawlNext(BDBStorage storage) throws IOException, InterruptedException
+	Boolean crawlNext(BDBStorage storage) throws IOException, InterruptedException, ClassNotFoundException
 	{
 		URL nextURL = crawlingQueue.poll();
 		//Thread.sleep(1000);
@@ -312,7 +315,7 @@ public class XPathCrawler {
 								return false;
 							}
 							//Store raw html first
-							storage.putDocument(nextURL.toString(), handb[1]);
+							storage.putDocument("html", nextURL.toString(), handb[1]);
 							
 							// parse Document using Jsoup
 							Document d = Jsoup.parse(handb[1]);
@@ -375,7 +378,7 @@ public class XPathCrawler {
 								return false;
 							}
 
-							storage.putDocument(nextURL.toString(), handb[1]);
+							storage.putDocument("xml", nextURL.toString(), handb[1]);
 							
 							DocumentBuilderFactory factory  =  DocumentBuilderFactory.newInstance(); 
 							DocumentBuilder documentBuilder;
@@ -391,6 +394,22 @@ public class XPathCrawler {
 								// TODO Auto-generated catch block
 								System.out.println("Malformed XML");
 								e.printStackTrace();
+							}
+							List<MyChannel> cl = storage.getAllChannels();
+							XPathEngineImpl xpe = new XPathEngineImpl();
+							for(MyChannel mc : cl)
+							{
+								xpe.setXPaths(mc.getXPaths().toArray(new String[0]));
+								boolean [] res = xpe.evaluate(doc);
+								for (boolean b : res)
+								{
+									if(b)
+									{
+										mc.addURL(nextURL.toString());
+										storage.addChannel(mc, true);
+										break;
+									}
+								}
 							}
 						}
 						else

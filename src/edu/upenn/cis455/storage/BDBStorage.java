@@ -45,18 +45,19 @@ public class BDBStorage {
 		dbXPath = myEnv.openDatabase(null, "XPath", dbConfig);
 	}
 	
-	public boolean putPasswordInUser(String username, String password) throws IOException
+	public boolean putPasswordInUser(String username, String password)
 	{
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream(baos);
-		oos.writeObject(password);
-		
 		DatabaseEntry key = new DatabaseEntry(username.getBytes());
-		DatabaseEntry data = new DatabaseEntry(baos.toByteArray());
+		DatabaseEntry data = new DatabaseEntry();
 		
+		if(dbUser.get(null, key, data, null) == OperationStatus.SUCCESS)	// EXIST
+			return false;
+		data.setData(password.getBytes());
 		if(dbUser.put(null, key, data) == OperationStatus.SUCCESS)
 			return true;
-		return false;
+		else
+			return false;	// should never reach;
+
 	}
 	
 	public void sync()
@@ -71,18 +72,51 @@ public class BDBStorage {
 		OperationStatus op = dbUser.get(null, key, data, null);
 		if(op == OperationStatus.NOTFOUND)
 			return false;
-		ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data.getData()));
-		String pwd = (String)ois.readObject();
+		String pwd = new String(data.getData());
 		if (pwd.equals(password))
 			return true;
 		else 
 			return false;
 	}
+	public boolean deleteChannel(String username, String channelname)
+	{
+		DatabaseEntry key = new DatabaseEntry((channelname+"@"+username).getBytes());
+		OperationStatus op = dbXPath.delete(null, key);
+		if (op == OperationStatus.SUCCESS)
+			return true;
+		else
+			return false;
+	}
+	
+	public boolean addChannel(MyChannel mychannel, boolean update) throws IOException
+	{
+		DatabaseEntry key = new DatabaseEntry((mychannel.channelName+"@"+mychannel.userName).getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		OperationStatus op = dbXPath.get(null, key, data, null);
+		if (!update)
+		{
+			if(op == OperationStatus.SUCCESS)
+				return false;
+		}
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(baos);
+		oos.writeObject(mychannel);
+		data.setData(baos.toByteArray());
+		op = dbXPath.put(null, key, data);
+		if (op == OperationStatus.SUCCESS)
+			return true;
+		else
+			return false;	// should never reach
+	}
+	
 	
 	public boolean addChannel(String username, String channelname, String xslurl, String [] xpaths, String [] urls, boolean append) throws IOException, ClassNotFoundException
 	{
 		DatabaseEntry key = new DatabaseEntry((channelname+"@"+username).getBytes());
 		DatabaseEntry data = new DatabaseEntry();
+		OperationStatus op = dbXPath.get(null, key, data, null);
+		if(op == OperationStatus.SUCCESS)
+			return false;
 		if (!append)
 		{
 			MyChannel mychannel = new MyChannel(username, channelname, xslurl, xpaths, urls);
@@ -90,7 +124,7 @@ public class BDBStorage {
 			ObjectOutputStream oos = new ObjectOutputStream(baos);
 			oos.writeObject(mychannel);
 			data.setData(baos.toByteArray());
-			OperationStatus op = dbXPath.put(null, key, data);
+			op = dbXPath.put(null, key, data);
 			if (op == OperationStatus.SUCCESS)
 				return true;
 			else
@@ -98,7 +132,7 @@ public class BDBStorage {
 		}
 		else
 		{
-			OperationStatus op = dbXPath.get(null, key, data, null);
+			op = dbXPath.get(null, key, data, null);
 			MyChannel mychannel = null;
 			if (op == OperationStatus.SUCCESS)
 			{
@@ -154,12 +188,12 @@ public class BDBStorage {
 		return channels;
 	}
 	
-	public void putDocument(String url, String raw)
+	public void putDocument(String type, String url, String raw)
 	{
 		DatabaseEntry key = new DatabaseEntry(url.getBytes());
 		DatabaseEntry data = new DatabaseEntry(raw.getBytes());
 		Long now = (new Date()).getTime();
-		DatabaseEntry datatime = new DatabaseEntry(now.toString().getBytes());
+		DatabaseEntry datatime = new DatabaseEntry((type+now.toString()).getBytes());
 		// write to both document and modifiedtime
 		dbDoc.put(null, key, data);
 		dbModify.put(null, key, datatime);
@@ -176,8 +210,25 @@ public class BDBStorage {
 			return 0;
 		else
 		{
-			long time = Long.valueOf(new String(data.getData()));
+			String comb = new String(data.getData());
+			comb = comb.substring(4);
+			long time = Long.valueOf(comb);
 			return time;
+		}
+	}
+	public String getType (String url)
+	{
+		DatabaseEntry key = new DatabaseEntry(url.getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		// write to both document and modifiedtime
+		OperationStatus op = dbModify.get(null, key, data, null);
+		if (op != OperationStatus.SUCCESS)
+			return null;
+		else
+		{
+			String comb = new String(data.getData());
+			comb = comb.substring(0, 4);
+			return comb;
 		}
 	}
 	
@@ -193,6 +244,12 @@ public class BDBStorage {
 		{
 			return new String(data.getData());
 		}
+	}
+	
+	public Cursor getDocCursor()	// Has to close after use
+	{
+		CursorConfig cc = new CursorConfig();
+		return dbDoc.openCursor(null, cc);
 	}
 	
 	public void closeDatabase()

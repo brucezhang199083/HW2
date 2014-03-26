@@ -63,6 +63,10 @@ public class MyChannel implements Serializable {
 		URLs = Arrays.asList(urls);
 	}
 	
+	public void addURL(String url)
+	{
+		URLs.add(url);
+	}
 	
 	public void appendXPaths(Collection<String> xPaths)
 	{

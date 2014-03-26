@@ -19,15 +19,15 @@ public class BDBStorageTest extends TestCase {
 	
 	public void testPutGetPassword() throws IOException, ClassNotFoundException
 	{
-		BDBStorage bdbStorage = new BDBStorage("/tmp/abc");
+		BDBStorage bdbStorage = new BDBStorage("/tmp/test");
 		bdbStorage.putPasswordInUser("bruce", "12345678");
-		bdbStorage.putPasswordInUser("bruce", "87654321");
+		bdbStorage.putPasswordInUser("bruce", "87654321");	//exist will fail
 		bdbStorage.sync();
 
 		assertFalse(bdbStorage.checkPasswordOfUser("bruce", "4422442244"));
 		assertFalse(bdbStorage.checkPasswordOfUser("steanna", "4422442244"));
-		assertTrue(bdbStorage.checkPasswordOfUser("bruce", "87654321"));
-		assertFalse(bdbStorage.checkPasswordOfUser("bruce", "12345678"));
+		assertFalse(bdbStorage.checkPasswordOfUser("bruce", "87654321"));
+		assertTrue(bdbStorage.checkPasswordOfUser("bruce", "12345678"));
 		bdbStorage.closeDatabase();
 		bdbStorage.removeAllDatabase();
 		bdbStorage.sync();
@@ -36,7 +36,7 @@ public class BDBStorageTest extends TestCase {
 	
 	public void testAddPutChannel() throws IOException, ClassNotFoundException
 	{
-		BDBStorage bdbStorage = new BDBStorage("/tmp/abc");
+		BDBStorage bdbStorage = new BDBStorage("/tmp/test");
 		List<String> xp = new ArrayList<String>();
 		List<String> urls = new ArrayList<String>();
 		xp.add("/abc/def");
@@ -67,10 +67,10 @@ public class BDBStorageTest extends TestCase {
 	
 	public void testGetPutDocumentAndModifiedTime() throws IOException, ClassNotFoundException, InterruptedException
 	{
-		BDBStorage bdbStorage = new BDBStorage("/tmp/abc");
+		BDBStorage bdbStorage = new BDBStorage("/tmp/test");
 		long time = (new Date()).getTime();
 		Thread.sleep(1000);
-		bdbStorage.putDocument("www.abc.com", "<html></html>");
+		bdbStorage.putDocument("html", "www.abc.com", "<html></html>");
 		
 		long modified = bdbStorage.getModified("www.abc.com");
 		assertTrue(modified - 1000 >= time);
