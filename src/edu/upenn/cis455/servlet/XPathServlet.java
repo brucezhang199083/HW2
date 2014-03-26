@@ -1,20 +1,14 @@
 package edu.upenn.cis455.servlet;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,7 +23,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
-import org.w3c.tidy.Tidy;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -37,16 +30,15 @@ import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
 
-import edu.upenn.cis455.client.MyHttpClient;
 import edu.upenn.cis455.storage.BDBStorage;
 import edu.upenn.cis455.storage.MyChannel;
-import edu.upenn.cis455.xpathengine.XPathEngineImpl;
+import edu.upenn.cis455.xpathengine.XPathEngineImpl;;
 
 @SuppressWarnings("serial")
 public class XPathServlet extends HttpServlet {
 
 	int numberOfXPath = 1;
-	HashMap<String, List<MyChannel>> currentChannelMap;
+	HashMap<String, List<MyChannel>> currenttChannelMap;
 	BDBStorage storage;
 	String storagePath;
 	
