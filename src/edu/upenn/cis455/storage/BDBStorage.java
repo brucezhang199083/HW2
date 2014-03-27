@@ -9,7 +9,9 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.sleepycat.je.Cursor;
 import com.sleepycat.je.CursorConfig;
@@ -27,6 +29,7 @@ public class BDBStorage {
 	private Database dbDoc;
 	private Database dbModify;
 	private Database dbXPath;
+	private Database dbSubscribe;
 	public BDBStorage(String path)
 	{
 		EnvironmentConfig ec = new EnvironmentConfig();
@@ -43,6 +46,7 @@ public class BDBStorage {
 		dbDoc = myEnv.openDatabase(null, "Document", dbConfig);
 		dbModify = myEnv.openDatabase(null, "ModifiedTime", dbConfig);
 		dbXPath = myEnv.openDatabase(null, "XPath", dbConfig);
+		dbSubscribe = myEnv.openDatabase(null, "Subscribe", dbConfig);
 	}
 	
 	public boolean putPasswordInUser(String username, String password)
@@ -77,6 +81,58 @@ public class BDBStorage {
 			return true;
 		else 
 			return false;
+	}
+	
+	public boolean addSubscribe(String username, String subusername, String subchannel)
+	{
+		DatabaseEntry key = new DatabaseEntry((username+"#"+subchannel+"@"+subusername).getBytes());
+		DatabaseEntry data = new DatabaseEntry(new byte[1]);
+		OperationStatus op = dbSubscribe.get(null, key, data, null);
+		if(op == OperationStatus.SUCCESS)
+			return false;
+		else
+		{
+			dbSubscribe.put(null, key, data);
+			System.out.println("ADDED SUBSCRIBE"+(username+"#"+subchannel+"@"+subusername));
+			return true;
+		}
+	}
+	public boolean deleteSubscribe(String username, String subusername, String subchannel)
+	{
+		DatabaseEntry key = new DatabaseEntry((username+"#"+subchannel+"@"+subusername).getBytes());
+		DatabaseEntry data = new DatabaseEntry();
+		OperationStatus op = dbSubscribe.delete(null, key);
+		if(op == OperationStatus.SUCCESS)
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	public Set<MyChannel> getSubscribedChannels(String username) throws ClassNotFoundException, IOException
+	{
+		DatabaseEntry key = new DatabaseEntry();
+		DatabaseEntry data = new DatabaseEntry();
+		CursorConfig cc = new CursorConfig();
+		Cursor subCursor = dbSubscribe.openCursor(null, cc);
+		Set<MyChannel> channels = new HashSet<MyChannel>();
+		OperationStatus op = subCursor.getFirst(key, data, null);
+		while(op == OperationStatus.SUCCESS)
+		{
+			String nk = new String(key.getData());
+			System.out.println(nk);
+			if (nk.startsWith(username+"#"))
+			{
+				String [] candu = (new String(key.getData())).split("[#@]");
+				MyChannel mc = getChannel(candu[2], candu[1]);
+				System.out.println("FOUND ONE SUB CHA");
+				if (mc != null)
+					channels.add(mc);
+			}
+			op = subCursor.getNext(key, data, null);
+		}
+		subCursor.close();
+		return channels;
 	}
 	public boolean deleteChannel(String username, String channelname)
 	{
@@ -258,6 +314,7 @@ public class BDBStorage {
 		dbDoc.close();
 		dbXPath.close();
 		dbModify.close();
+		dbSubscribe.close();
 	}
 	
 	public void removeAllDatabase()	//Should be very careful when calling this function
@@ -266,6 +323,7 @@ public class BDBStorage {
 		myEnv.removeDatabase(null, "Document");
 		myEnv.removeDatabase(null, "XPath");
 		myEnv.removeDatabase(null, "ModifiedTime");
+		myEnv.removeDatabase(null, "Subscribe");
 	}
 	
 	public void closeEnvironment()

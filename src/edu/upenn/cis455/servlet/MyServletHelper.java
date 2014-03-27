@@ -6,6 +6,13 @@ import edu.upenn.cis455.storage.MyChannel;
 
 public class MyServletHelper {
 
+	public enum ListState
+	{
+		ALL,
+		ALLLOGIN,
+		CREATED,
+		SUBSCRIBED,
+	}
 	public static void WriteHTMLHead(PrintWriter pw)
 	{
 		pw.println("<!DOCTYPE html>");
@@ -34,7 +41,7 @@ public class MyServletHelper {
 		pw.println("<div class=\"panel-header bg-red fg-white\">Failed!</div>");
 		pw.println("<div class=\"panel-content text-center\" style=\"display: block;\">");
 		pw.println("<p style=\"font-size: large;\">"+errormsg+"</p>");
-		pw.println("<a href=\"/xpath\"><button class=\"button primary\" style=\"width: 28%;\">" +
+		pw.println("<a href=\"/xpath\"><button class=\"button danger\" style=\"width: 28%;\">" +
 				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button>");
 		pw.println("</div></div>");
 	}
@@ -44,17 +51,74 @@ public class MyServletHelper {
 		pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Suceeded!</div>");
 		pw.println("<div class=\"panel-content text-center\" style=\"display: block;\">");
 		pw.println("<p style=\"font-size: large;\">"+msg+"</p>");
-		pw.println("<a href=\"/xpath\"><button class=\"button primary\" style=\"width: 28%;\">" +
+		pw.println("<a href=\"/xpath\"><button class=\"button info\" style=\"width: 28%;\">" +
 				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button>");
 		pw.println("</div></div>");
 	}
 	
-	public static void WriteChannelAccordionFrame(PrintWriter pw, MyChannel mc)
+	public static void WriteChannelAccordionFrame(PrintWriter pw, MyChannel mc, ListState ls)
 	{
-		pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading\">" +
+		if (ls == ListState.ALL)
+		{
+			pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading\">" +
+					   mc.getChannelName()+" @User: "+mc.getUserName()+"</a>");
+		}
+		else if (ls == ListState.ALLLOGIN)
+		{
+			pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading bg-lightBlue fg-wight\">" +
+					   mc.getChannelName()+" @User: "+mc.getUserName()+"</a>");
+		}
+		else if (ls == ListState.CREATED)
+		{
+			pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading bg-green fg-white\">" +
 				   mc.getChannelName()+"</a>");
+		}
+		else if (ls == ListState.SUBSCRIBED)
+		{
+			pw.println("<div class=\"accordion-frame\" ><a href=\"\" class=\"heading bg-orange fg-white\">" +
+					   mc.getChannelName()+" @User: "+mc.getUserName()+"</a>");
+		}
 		pw.println("<div class=\"content\">");
 		// xpath list
+		if (ls == ListState.ALL)
+		{
+			pw.println("<form id=\"Display\" action=\"/xpath\" method=\"POST\" target\"_blank\">");
+			pw.println("<input type=\"hidden\" name=\"targetchannel\" value=\""+mc.getChannelName()+"\"/>");
+			pw.println("<input type=\"hidden\" name=\"createuser\" value=\""+mc.getUserName()+"\"/>");
+			pw.println("<div class=\"form-actions\">");
+			pw.println("<button class=\"button info\" name=\"buttonclicked\" value=\"DISPLAY\">Display</button>");
+			pw.println("</div></form>");
+		}
+		else if (ls == ListState.ALLLOGIN)
+		{
+			pw.println("<form id=\"Display\" action=\"/xpath\" method=\"POST\">");
+			pw.println("<input type=\"hidden\" name=\"targetchannel\" value=\""+mc.getChannelName()+"\"/>");
+			pw.println("<input type=\"hidden\" name=\"createuser\" value=\""+mc.getUserName()+"\"/>");
+			pw.println("<div class=\"form-actions\">");
+			pw.println("<button class=\"button info\" name=\"buttonclicked\" value=\"DISPLAY\">Display</button>");
+			pw.println("<button class=\"button success\" name=\"buttonclicked\" value=\"SUBSCRIBE\">Subscribe</button>");
+			pw.println("</div></form>");
+		}
+		else if (ls == ListState.CREATED)
+		{
+			pw.println("<form id=\"DisplayDelete\" action=\"/xpath\" method=\"POST\">");
+			pw.println("<input type=\"hidden\" name=\"targetchannel\" value=\""+mc.getChannelName()+"\"/>");
+			pw.println("<input type=\"hidden\" name=\"createuser\" value=\""+mc.getUserName()+"\"/>");
+			pw.println("<div class=\"form-actions\">");
+			pw.println("<button class=\"button info\" name=\"buttonclicked\" value=\"DISPLAY\" >Display</button>");
+			pw.println("<button class=\"button danger\" name=\"buttonclicked\" value=\"DELETE\">Delete</button>");
+			pw.println("</div></form>");
+		}
+		else if (ls == ListState.SUBSCRIBED)
+		{
+			pw.println("<form id=\"Sub\" action=\"/xpath\" method=\"POST\">");
+			pw.println("<input type=\"hidden\" name=\"targetchannel\" value=\""+mc.getChannelName()+"\"/>");
+			pw.println("<input type=\"hidden\" name=\"createuser\" value=\""+mc.getUserName()+"\"/>");
+			pw.println("<div class=\"form-actions\">");
+			pw.println("<button class=\"button info\" name=\"buttonclicked\" value=\"DISPLAY\" >Display</button>");
+			pw.println("<button class=\"button warning\" name=\"buttonclicked\" value=\"UNSUBSCRIBE\" >Unsubscribe</button>");
+			pw.println("</div></form>");
+		}
 		pw.println("<table class=\"bordered text-left\">");
 		pw.println("<thead><tr class=\"bg-lightTeal\"><th>Rules (XPaths):</th></tr></thead>");
 		pw.println("<tbody>");
@@ -75,6 +139,8 @@ public class MyServletHelper {
 		pw.println("<tr><td>"+"<a href=\""+mc.getXslURL()+"\">"+mc.getXslURL()+"</a>"+"</td></tr>");
 		pw.println("</tbody>");
 		pw.println("</table>");
+
+		pw.println("</div></div>");
 		// content is not end
 	}
 	public static void WriteLoginButtonScript(PrintWriter pw)

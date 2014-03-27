@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -30,6 +32,7 @@ import com.sleepycat.je.Cursor;
 import com.sleepycat.je.DatabaseEntry;
 import com.sleepycat.je.OperationStatus;
 
+import edu.upenn.cis455.servlet.MyServletHelper.ListState;
 import edu.upenn.cis455.storage.BDBStorage;
 import edu.upenn.cis455.storage.MyChannel;
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
@@ -38,7 +41,7 @@ import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 public class XPathServlet extends HttpServlet {
 
 	int numberOfXPath = 1;
-	HashMap<String, List<MyChannel> > currentChannelMap;
+	HashMap<String, Set<MyChannel> > currentChannelMap;
 	BDBStorage storage;
 	String storagePath;
 	
@@ -51,16 +54,16 @@ public class XPathServlet extends HttpServlet {
 			storagePath = config.getServletContext().getInitParameter("BDBstore");
 		storage = new BDBStorage(storagePath);
 		// build current user channel map;
-		currentChannelMap = new HashMap<String, List<MyChannel>>();
+		currentChannelMap = new HashMap<String, Set<MyChannel>>();
 		try {
 			List<MyChannel> currentChannels = storage.getAllChannels();
 			for (MyChannel mc : currentChannels) {
-				List<MyChannel> userChannel = null;
+				Set<MyChannel> userChannel = null;
 				if (currentChannelMap.containsKey(mc.getUserName())) {
 					userChannel = currentChannelMap.get(mc.getUserName());
 					userChannel.add(mc);
 				} else {
-					userChannel = new ArrayList<MyChannel>();
+					userChannel = new HashSet<MyChannel>();
 					userChannel.add(mc);
 					currentChannelMap.put(mc.getUserName(), userChannel);
 				}
@@ -182,36 +185,104 @@ public class XPathServlet extends HttpServlet {
 			pw.println("<button class=\"button danger\" style=\"width: 80%;\" >"
 					+ "<p style=\"font-size: x-large;margin-top: 7px;\">Log me out</p></button></a></div></div>");
 
-			pw.println("<div class=\"panel place-right\" style=\"width: 61%;\">");
-			pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Channel For "
-					+ currentuser + "</div>");
+			// XXX: Channel Tabs
+			pw.println("<div class=\"tab-control place-right\" style=\"width: 62%;\" data-role=\"tab-control\">");
+			pw.println("<ul class=\"tabs\">");
+			pw.println("<li class=\"active\"><a href=\"#pagea\">All</a></li>");
+			pw.println("<li><a href=\"#pagec\">Created</a></li>");
+			pw.println("<li><a href=\"#pages\">Subscribed</a></li>");
+			pw.println("</ul>");
+			
+			// tab page for all
+			pw.println("<div class=\"frames\">");
+			pw.println("<div class=\"frame\" id=\"pagea\">");
+			// XXX: Channel list when user is
+			pw.println("<div class=\"panel\">");
+			pw.println("<div class=\"panel-header bg-blue fg-white\">Channel Available</div>");
+			pw.println("<div class=\"panel-content\">");
+			// All channel first
+			List<MyChannel> clist = null;
+			try {
+				clist = storage.getAllChannels();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			if (clist.size() == 0) {
+				// No channel for now. Try to be the first one to create some
+				// channels!
+				pw.println("<p style=\"font-size: large;\">No channel available for now. Try to be the first one to create channels!</p>");
+				pw.println("</div></div>");
+			} 
+			else 
+			{
+				// contents
+				pw.println("<div class=\"accordion with-marker\" data-role=\"accordion\">");
+				for (MyChannel mc : clist) {
+					MyServletHelper.WriteChannelAccordionFrame(pw, mc, ListState.ALLLOGIN);
+					
+				}
+				pw.println("</div></div></div>");
+			}			
+			pw.println("</div>");	// PAGE ALL OVER
+			
+			pw.println("<div class=\"frame\" id=\"pagec\">");	// PAGE CREATE START
+			
+			pw.println("<div class=\"panel\">");
+			pw.println("<div class=\"panel-header bg-darkGreen fg-white\">Channel User Created</div>");
 			pw.println("<div class=\"panel-content\">");
 			// if no channel
-			List<MyChannel> userChannel = currentChannelMap.get(currentuser);
+			Set<MyChannel> userChannel = currentChannelMap.get(currentuser);
 			if (userChannel == null) {
-				pw.println("<p style=\"font-size:large;\">You don't have any channel for now, try create one!</p></div>");
-			} else {
+				pw.println("<p style=\"font-size:large;\">You don't have any channel for now, try create one!</p></div></div>");
+			} 
+			else 
+			{
 				// channel list accordion
 				pw.println("<div class=\"accordion with-marker\" data-role=\"accordion\">");
 				for (MyChannel mc : userChannel) {
-					MyServletHelper.WriteChannelAccordionFrame(pw, mc);
-					MyServletHelper.WriteSimpleSubmitScript(pw, "DisplayDelete");
-					pw.println("<form id=\"DisplayDelete\" action=\"/xpath\" method=\"POST\">");
-					pw.println("<input type=\"hidden\" name=\"targetchannel\" value=\""+mc.getChannelName()+"\"/>");
-					pw.println("<div class=\"form-actions\">");
-					pw.println("<button class=\"button info\" name=\"buttonclicked\" value=\"DISPLAY\" onclick=\"toTarget(_blank)\">Display</button>");
-					pw.println("<button class=\"button danger\" name=\"buttonclicked\" value=\"DELETE\">Delete</button>");
-					pw.println("</div></form>");
-					pw.println("</div></div>");
+					MyServletHelper.WriteChannelAccordionFrame(pw, mc, ListState.CREATED);
 				}
-				pw.println("</div></div>");
+				pw.println("</div></div></div>");
 			}
+			
+			pw.println("</div>"); // PAGE CREATE OVER!
+			
+			// TODO: PAGE SUBSCRIBE!
+			pw.println("<div class=\"frame\" id=\"pages\">");	// PAGE CREATE START
+			
+			pw.println("<div class=\"panel\">");
+			pw.println("<div class=\"panel-header bg-darkOrange fg-white\">Channel Subscribed</div>");
+			pw.println("<div class=\"panel-content\">");
+			Set<MyChannel> subChannels = null;
+			try {
+				subChannels = storage.getSubscribedChannels(currentuser);
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			if (subChannels.size() == 0) {
+				pw.println("<p style=\"font-size:large;\">You didn't subscribe any channel, try subscribe one!</p></div></div>");
+			} 
+			else 
+			{
+				// channel list accordion
+				pw.println("<div class=\"accordion with-marker\" data-role=\"accordion\">");
+				for (MyChannel mc : subChannels) {
+					MyServletHelper.WriteChannelAccordionFrame(pw, mc, ListState.SUBSCRIBED);
+				}
+				pw.println("</div></div></div>");
+			}
+			pw.println("</div>"); // PAGE SUBSCRIBE OVER!
+			pw.println("</div></div>");
 			MyServletHelper.WriteCreateButtonScript(pw);
 			MyServletHelper.WriteHTMLTail(pw);
 
 			storage.closeEnvironment();
 			return;
-		} else {
+		}
+		else
+		{	// not loggin in!!!
 			// Login:
 			pw.println("<div class=\"panel place-left\" style=\"width: 35%;\">");
 			pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Login</div>");
@@ -223,10 +294,12 @@ public class XPathServlet extends HttpServlet {
 			// admin Login
 			pw.println("<button id=\"adminButton\" class=\"button bg-cyan\" style=\"width: 80%;\">"
 					+ "<p style=\"font-size: x-large;margin-top: 7px;\">Login as Admin</p></button></div></div>");
+			
 			// Channel list panel
-			pw.println("<div class=\"panel place-right\" style=\"width: 61%;\">");
-			pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Channel List</div>");
+			pw.println("<div class=\"panel place-right\" style=\"width: 62%;\" >");
+			pw.println("<div class=\"panel-header bg-gray fg-white\">Channel Available</div>");
 			pw.println("<div class=\"panel-content\">");
+			
 			List<MyChannel> clist = null;
 			// channel list accordion
 			try {
@@ -244,11 +317,11 @@ public class XPathServlet extends HttpServlet {
 				// contents
 				pw.println("<div class=\"accordion with-marker\" data-role=\"accordion\">");
 				for (MyChannel mc : clist) {
-					MyServletHelper.WriteChannelAccordionFrame(pw, mc);
-					pw.println("</div></div>");
+					MyServletHelper.WriteChannelAccordionFrame(pw, mc, ListState.ALL);
+					
 				}
 				pw.println("</div></div>");
-			}
+			}			
 			MyServletHelper.WriteLoginButtonScript(pw);
 			MyServletHelper.WriteHTMLTail(pw);
 
@@ -311,12 +384,12 @@ public class XPathServlet extends HttpServlet {
 						XsltURL, xpathArray, matchingURLs.toArray(new String[0]));
 				if (storage.addChannel(newc, false)) {
 					// update local copies
-					List<MyChannel> userChannel = null;
+					Set<MyChannel> userChannel = null;
 					if (currentChannelMap.containsKey(currentuser)) {
 						userChannel = currentChannelMap.get(currentuser);
 						userChannel.add(newc);
 					} else {
-						userChannel = new ArrayList<MyChannel>();
+						userChannel = new HashSet<MyChannel>();
 						userChannel.add(newc);
 						currentChannelMap.put(currentuser, userChannel);
 					}
@@ -356,7 +429,7 @@ public class XPathServlet extends HttpServlet {
 				{
 					storage.sync();
 					// sync with currentChannelMap
-					List<MyChannel> listChannel = currentChannelMap.get(cu);
+					Set<MyChannel> listChannel = currentChannelMap.get(cu);
 					MyChannel todelete = null;
 					for(MyChannel mc : listChannel)
 					{
@@ -389,13 +462,69 @@ public class XPathServlet extends HttpServlet {
 				return;
 			}
 		}
+		else if(opt.equals("SUBSCRIBE"))
+		{
+			resp.setContentType("text/html");
+			MyServletHelper.WriteHTMLHead(pw);
+			
+
+			String cu = (String) req.getSession().getAttribute("currentuser");
+			String createUser = req.getParameter("createuser");
+			String target=req.getParameter("targetchannel");
+			
+			if(storage.addSubscribe(cu, createUser, target))
+			{
+				MyServletHelper.WriteLoginSuccessPanel(pw, "Successfully subscribed channel : "+target);
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.sync();
+				storage.closeEnvironment();
+				return;
+			}
+			else
+			{
+				MyServletHelper.WriteLoginFailPanel(pw, "Sorry, weird things happened...subscribe fail");
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
+				return;
+			}
+			
+		}
+		else if(opt.equals("UNSUBSCRIBE"))
+		{
+			resp.setContentType("text/html");
+			MyServletHelper.WriteHTMLHead(pw);
+			String cu = (String) req.getSession().getAttribute("currentuser");
+			String createUser = req.getParameter("createuser");
+			String target=req.getParameter("targetchannel");
+			
+			if(storage.deleteSubscribe(cu, createUser, target))
+			{
+				MyServletHelper.WriteLoginSuccessPanel(pw, "Successfully unsubscribed channel : "+target);
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.sync();
+				storage.closeEnvironment();
+				return;
+			}
+			else
+			{
+				MyServletHelper.WriteLoginFailPanel(pw, "Sorry, weird things happened...unsubscribe fail");
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
+				return;
+			}
+	
+			
+		}
 		else if(opt.equals("DISPLAY"))
 		{
 			resp.setContentType("text/xml");
 			// WRITE THE FORMATTED XML
 			String target=req.getParameter("targetchannel");
 			String cu = (String) req.getSession().getAttribute("currentuser");
-			List<MyChannel> listChannel = currentChannelMap.get(cu);
+			if (cu == null)
+				cu = req.getParameter("createuser");
+			
+			Set<MyChannel> listChannel = currentChannelMap.get(cu);
 			MyChannel todisplay = null;
 			for(MyChannel mc : listChannel)
 			{
@@ -583,16 +712,16 @@ public class XPathServlet extends HttpServlet {
 		while (op == OperationStatus.SUCCESS) {
 			// Use dom parser
 			String url = new String(key.getData());
-			System.out.println("URL: "+url);
+			//System.out.println("URL: "+url);
 			String type = storage.getType(url);
-			System.out.println("TYPE: "+type);
+			//System.out.println("TYPE: "+type);
 			if (type.equals("xmls"))
 			{
 				DocumentBuilder db = DocumentBuilderFactory.newInstance()
 						.newDocumentBuilder();
 				Document dom = db.parse(new InputSource(new InputStreamReader(new ByteArrayInputStream(data.getData()),"UTF-8")));
 				boolean[] res = xpe.evaluate(dom);
-				System.out.println(Arrays.toString(res));
+				//System.out.println(Arrays.toString(res));
 				for (boolean b : res) {
 					if (b) {
 						urls.add(new String(key.getData()));
