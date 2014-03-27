@@ -32,13 +32,13 @@ import com.sleepycat.je.OperationStatus;
 
 import edu.upenn.cis455.storage.BDBStorage;
 import edu.upenn.cis455.storage.MyChannel;
-import edu.upenn.cis455.xpathengine.XPathEngineImpl;;
+import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 
 @SuppressWarnings("serial")
 public class XPathServlet extends HttpServlet {
 
 	int numberOfXPath = 1;
-	HashMap<String, List<MyChannel>> currenttChannelMap;
+	HashMap<String, List<MyChannel> > currentChannelMap;
 	BDBStorage storage;
 	String storagePath;
 	
@@ -406,7 +406,8 @@ public class XPathServlet extends HttpServlet {
 				}
 			}
 			List<String> urls = todisplay.getURLs();
-			writeFormattedXML(urls, pw);
+			writeFormattedXML(urls, todisplay.getXslURL(), pw);
+			storage.closeEnvironment();
 		}
 		// Switch between add another xpath and submit the form
 		// if(another != null && another.equals("Add Another"))
@@ -605,11 +606,12 @@ public class XPathServlet extends HttpServlet {
 		return urls;
 	}
 	
-	private void writeFormattedXML(List<String> urls, PrintWriter pw)
+	private void writeFormattedXML(List<String> urls, String xslt, PrintWriter pw)
 	{
+		System.out.println("AM I EVEN WRITING?");
+		pw.println("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>");
+		pw.println("<?xml-stylesheet type=\"text/xsl\" href=\""+xslt+"\"?>");
 		pw.println("<documentcollection>");
-		DatabaseEntry key = new DatabaseEntry();
-		DatabaseEntry data = new DatabaseEntry();
 		SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd'T'kk:mm:ss");
 		for(String u : urls)
 		{
