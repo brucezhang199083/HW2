@@ -1,11 +1,15 @@
 package edu.upenn.cis455.crawler;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PipedWriter;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -35,24 +39,42 @@ import edu.upenn.cis455.client.MyHttpClient;
 import edu.upenn.cis455.storage.*;
 import edu.upenn.cis455.xpathengine.XPathEngineImpl;
 
-public class XPathCrawler {
+public class XPathCrawler implements Runnable{
 	// Static arguments
-	static String StoragePath;
-	static String StartingPage;
-	static int MaximumSize;
-	static int MaximumDocNumber;
+	String StoragePath;
+	String StartingPage;
+	int MaximumSize;
+	int MaximumDocNumber;
+	PipedWriter interWriter;
 
 	HashMap<String, RobotRules> robotsMap;
 	Queue<URL> crawlingQueue;
 	Set<String> crawledSet;
 
-	XPathCrawler()
+	int totalByte = 0;
+	int htmlnum = 0;
+	int xmlnum = 0;
+	int channelnum = 0;
+	
+	public XPathCrawler(String storep, String startp, int maxs, int maxn, boolean piped)
 	{
+		if (piped)
+			interWriter = new PipedWriter();
+		else
+			interWriter = null;
+		StoragePath = storep;
+		StartingPage = startp;
+		MaximumSize = maxs;
+		MaximumDocNumber = maxn;
 		robotsMap = new HashMap<String, RobotRules>();
 		crawlingQueue = new LinkedList<URL>();
 		crawledSet = new HashSet<String>();
 	}
 	
+	public PipedWriter getPipedWriter()
+	{
+		return interWriter;
+	}
 	// Parse robots.txt for a specific host
 	String getHostAndPort(URL url)
 	{
@@ -153,35 +175,17 @@ public class XPathCrawler {
 		System.out.println("Usage: java XPathCrawler StartingPage StorageDir MaxSize [MaxDocNum]");
 	}
 	
-	// Main
-	public static void main(String args[]) throws InterruptedException, ClassNotFoundException
-	{
-		/* TODO: Implement crawler */
-		if (args.length != 3 && args.length != 4)
-		{
-			System.out.println("Error arg num");
-			Usage();
-			return;
-		}
-		StartingPage = args[0];
-		StoragePath = args[1];
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+		// Inter process pipe
+		PrintWriter pw = null;
+		if (interWriter == null)
+			pw = new PrintWriter(System.out);
+		else
+			pw = new PrintWriter(interWriter);
 
-		try {
-			MaximumSize = Integer.parseInt(args[2]);
-			if (args.length == 3)	//No MaxDocNum specified
-			{
-				MaximumDocNumber = -1;
-			}
-			else
-			{
-				MaximumDocNumber = Integer.parseInt(args[3]);
-			}
-		} catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			Usage();
-			return;
-		}
-		XPathCrawler instance = new XPathCrawler();
 		BDBStorage bdb = new BDBStorage(StoragePath);
 		try {
 			URL seeds = null;
@@ -189,36 +193,88 @@ public class XPathCrawler {
 				seeds = new URL("http://"+StartingPage);
 			else
 				seeds = new URL(StartingPage);
-			instance.crawlingQueue.add(seeds);
+			crawlingQueue.add(seeds);
 
 		} catch (MalformedURLException e) {
 			// TODO Auto-generated catch block
-			System.out.println("URL FORMAT ERROR!");
-			System.out.println(StartingPage);
-			Usage();
+			pw.println("URL FORMAT ERROR : "+StartingPage);
+			pw.println("Detail:");
+			e.printStackTrace(pw);
 			return;
 		}
-		try {
+
 			int count = 0;
-			while(instance.crawlNext(bdb) != null)
+			Boolean res = null;
+			do
 			{
-				count++;
+				try {
+					res = crawlNext(bdb, pw);
+				} catch (Exception e)
+				{
+					e.printStackTrace(pw);
+					continue;
+				}
+				//System.out.println("Crawingqueue:"+instance.crawlingQueue);
+				if (res)
+					count++;
 				if (MaximumDocNumber > 0 && count >= MaximumDocNumber)
 					break;
 				else
 					continue;
 			}
-			
-			System.out.println(instance.crawledSet.size());
+			while(res != null);
+		
+			pw.println("I have to be outputed");
+			pw.println(crawledSet.size()+" Document Visited");
+			pw.println("Domain visited : "+robotsMap.keySet());
+			pw.println("Total byte downloaded : "+totalByte);
+			pw.println("HTML Scanned : "+htmlnum);
+			pw.println("XML Retrieved : "+xmlnum);
+			pw.println("Total channel matching processed : "+channelnum);
+			pw.println("See the log for other details.");
+			pw.println("crawling finished");
 			bdb.closeDatabase();
 			bdb.closeEnvironment();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			pw.close();
+		
+	}
+	// Main
+	public static void main(String args[]) throws InterruptedException, ClassNotFoundException
+	{
+		String storagePath = null;
+		String startingPage = null;
+		int maximumSize;
+		int maximumDocNumber;
+		/* TODO: Implement crawler */
+		if (args.length != 3 && args.length != 4)
+		{
+			System.out.println("Error arg num");
+			Usage();
+			return;
 		}
+		startingPage = args[0];
+		storagePath = args[1];
+
+		try {
+			maximumSize = Integer.parseInt(args[2]);
+			if (args.length == 3)	//No MaxDocNum specified
+			{
+				maximumDocNumber = -1;
+			}
+			else
+			{
+				maximumDocNumber = Integer.parseInt(args[3]);
+			}
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			Usage();
+			return;
+		}
+		XPathCrawler instance = new XPathCrawler(storagePath, startingPage, maximumSize, maximumDocNumber, false);
+		instance.run();		
 	}
 
-	Boolean crawlNext(BDBStorage storage) throws IOException, InterruptedException, ClassNotFoundException
+	Boolean crawlNext(BDBStorage storage, PrintWriter pw) throws IOException, InterruptedException, ClassNotFoundException, MyClientException
 	{
 		URL nextURL = crawlingQueue.poll();
 		//Thread.sleep(1000);
@@ -263,9 +319,14 @@ public class XPathCrawler {
 				MyHttpClient mhc = new MyHttpClient();
 				mhc.connectTo(nextURL);
 				// Send head to get info
-				try {
 					mhc.send("HEAD");
-					System.out.println("Head sended");
+					if (interWriter == null) { 
+						//System.out.println("Head sended");
+					}
+					else
+					{
+						//pw.println("Head sended");
+					}
 					String [] headerarray = null;
 					try
 					{
@@ -273,7 +334,7 @@ public class XPathCrawler {
 					}
 					catch (MyClientException e)
 					{
-						e.printStackTrace();
+						e.printStackTrace(pw);
 						return false;
 					}
 					//System.out.println(headerarray[0]);
@@ -284,9 +345,15 @@ public class XPathCrawler {
 					if (headerMap.containsKey("content-length"))
 					{
 						int contentLength = Integer.parseInt(headerMap.get("content-length").get(0));
-						if (contentLength > MaximumSize)
+						if (contentLength > MaximumSize*1048576)
 						{
-							System.out.println(nextURL+" : File size exceeds limit, discarding...");
+							if (interWriter == null) { 
+								System.out.println(nextURL+" : File size exceeds limit, discarding...");
+							}
+							else
+							{
+								pw.println(nextURL+" : File size exceeds limit, discarding...");
+							}
 							return false;
 						}
 					}
@@ -306,7 +373,14 @@ public class XPathCrawler {
 									long crawled = storage.getModified(nextURL.toString());
 									if(mdf < crawled)
 									{
-										System.out.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										if (interWriter == null) 
+										{ 
+											System.out.println(nextURL+" : HTML Not Modified, retrieving from DB...");
+										}
+										else
+										{
+											pw.println(nextURL+" : HTML Not Modified, retrieving from DB...");
+										}
 										notmodified = true;
 										String fromdb = storage.getDocument(nextURL.toString());
 										handb = new String[2];
@@ -314,7 +388,8 @@ public class XPathCrawler {
 									}
 								} catch (ParseException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									e.printStackTrace(pw);
+									return false;
 								}
 							}
 							if (!notmodified)
@@ -323,21 +398,40 @@ public class XPathCrawler {
 								mhc.connectTo(nextURL);
 								rule.access();
 								mhc.send("GET");
-								System.out.println(nextURL+" : HTML Downloading...");
-								System.out.println("Get sended");
+								if (interWriter == null) { 
+									System.out.println(nextURL+" : HTML Downloading...");
+								}
+								else
+								{
+									pw.println(nextURL+" : HTML Downloading...");
+								}
 								try
 								{
 									handb = mhc.receive();
 								}
 								catch (MyClientException e)
 								{
-									System.out.println("Error when receiving, discarding...");
+									if (interWriter == null) { 
+										System.out.println("Error when receiving, discarding...");
+									}
+									else
+									{
+										pw.println("Error when receiving, discarding...");
+									}
 									return false;
 								}
+								totalByte += handb[1].length();
 								mhc.closeConnection();
-								if (handb[1].length() > MaximumSize)
+								if (handb[1].length() > MaximumSize*1048576)
 								{
-									System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									if (interWriter == null) 
+									{ 
+										System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									}
+									else
+									{
+										pw.println(nextURL+" : File size exceeds limit, discarding...");
+									}
 									return false;
 								}
 								else
@@ -347,6 +441,7 @@ public class XPathCrawler {
 								}
 							}
 							// parse Document using Jsoup
+							htmlnum++;
 							Document d = Jsoup.parse(handb[1]);
 							Elements linklist = d.select("a[href]");
 							// go on crawling
@@ -364,7 +459,9 @@ public class XPathCrawler {
 								}
 								else
 								{
-									//System.out.println(e);
+									if (href.startsWith("#"))
+										continue;
+									//pw.println(href);
 									String fullurl = null;
 									if(href.matches("(?i)^http://.*"))
 									{
@@ -387,11 +484,23 @@ public class XPathCrawler {
 										if(start.endsWith("/"))
 											fullurl = start+href;
 										else
-											fullurl = start+"/"+href;
+										{
+											int pos = start.lastIndexOf('/');
+											String last = start.substring(pos+1);
+											if (last.contains("."))
+											{
+												fullurl = start.substring(0, pos+1)+href;
+											}
+											else
+											{
+												fullurl = start+"/"+href;
+											}
+										}
 									}
 									newURLs.add(new URL(fullurl));
 								}
 							}
+						//	System.out.println(newURLs);
 							crawlingQueue.addAll(newURLs);
 						}
 						else if(type.matches(".*/xml"))
@@ -407,7 +516,14 @@ public class XPathCrawler {
 									long crawled = storage.getModified(nextURL.toString());
 									if(mdf < crawled)
 									{
-										System.out.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										if (interWriter == null)
+										{ 
+											System.out.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										}
+										else
+										{
+											pw.println(nextURL+" : XML Not Modified, retrieving from DB...");
+										}
 										notmodified = true;
 										String fromdb = storage.getDocument(nextURL.toString());
 										handb = new String[2];
@@ -415,7 +531,8 @@ public class XPathCrawler {
 									}
 								} catch (ParseException e) {
 									// TODO Auto-generated catch block
-									e.printStackTrace();
+									e.printStackTrace(pw);
+									return false;
 								}
 							}
 							if (!notmodified)
@@ -423,15 +540,30 @@ public class XPathCrawler {
 								mhc.connectTo(nextURL);
 								mhc.send("GET");
 								rule.access();
-								System.out.println(nextURL+" : XML Downloading...");
-								handb = mhc.receive();
-								if (handb[1].length() > MaximumSize)
+								if (interWriter == null)
+								{ 
+									System.out.println(nextURL+" : XML Downloading...");
+								}
+								else
 								{
-									System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									pw.println(nextURL+" : XML Downloading...");
+								}
+								handb = mhc.receive();
+								if (handb[1].length() > MaximumSize*1048576)
+								{
+									if (interWriter == null) { 
+										System.out.println(nextURL+" : File size exceeds limit, discarding...");
+									}
+									else
+									{
+										pw.println(nextURL+" : File size exceeds limit, discarding...");
+									}
 									return false;
 								}
+								totalByte += handb[1].length();
 								storage.putDocument("xmls", nextURL.toString(), handb[1]);
 							}
+							xmlnum++;
 							DocumentBuilderFactory factory  =  DocumentBuilderFactory.newInstance(); 
 							DocumentBuilder documentBuilder;
 							org.w3c.dom.Document doc = null;
@@ -444,8 +576,15 @@ public class XPathCrawler {
 								e.printStackTrace();
 							} catch (SAXException e) {
 								// TODO Auto-generated catch block
-								System.out.println("Malformed XML");
-								e.printStackTrace();
+								if (interWriter == null) { 
+									System.out.println("Malformed XML");
+								}
+								else
+								{
+									pw.println("Malformed XML");
+								}
+								e.printStackTrace(pw);
+								return false;
 							}
 							List<MyChannel> cl = storage.getAllChannels();
 							XPathEngineImpl xpe = new XPathEngineImpl();
@@ -457,6 +596,8 @@ public class XPathCrawler {
 								{
 									if(b)
 									{
+										channelnum++;
+										pw.println("Matched Channel : "+mc.getChannelName());
 										mc.addURL(nextURL.toString());
 										storage.addChannel(mc, true);
 										break;
@@ -466,22 +607,48 @@ public class XPathCrawler {
 						}
 						else
 						{
-							System.out.println(nextURL+" : Content type mismatch, discarding...");
+							if (interWriter == null) { 
+								System.out.println(nextURL+" : Content type mismatch, discarding...");
+							}
+							else
+							{
+								pw.println(nextURL+" : Content type mismatch, discarding...");
+							}
 							return false;
 						}
 						storage.sync();
 					}	// content-type
 					else
 					{
-						System.out.println(nextURL+" : Content type not found, discarding...");
+						if (interWriter == null) { 
+							System.out.println(nextURL+" : Content type not found, discarding...");
+						}
+						else
+						{
+							pw.println(nextURL+" : Content type not found, discarding...");
+						}
 						return false;
 					}
-				} catch (MyClientException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} 
-			}
+				}
 		}
-		return false;
+		return true;
+	}
+	
+	class NullWriter extends Writer
+	{
+		@Override
+		public void write(char[] cbuf, int off, int len) throws IOException {
+			// DO NOTHING!
+		}
+
+		@Override
+		public void flush() throws IOException {
+			// DO NOTHING!			
+		}
+
+		@Override
+		public void close() throws IOException {
+			// DO NOTHING!
+		}
 	}
 }

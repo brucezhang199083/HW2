@@ -93,7 +93,6 @@ public class BDBStorage {
 		else
 		{
 			dbSubscribe.put(null, key, data);
-			System.out.println("ADDED SUBSCRIBE"+(username+"#"+subchannel+"@"+subusername));
 			return true;
 		}
 	}
@@ -139,7 +138,27 @@ public class BDBStorage {
 		DatabaseEntry key = new DatabaseEntry((channelname+"@"+username).getBytes());
 		OperationStatus op = dbXPath.delete(null, key);
 		if (op == OperationStatus.SUCCESS)
-			return true;
+		{
+			// delete subscribe
+			DatabaseEntry skey = new DatabaseEntry();
+			DatabaseEntry data = new DatabaseEntry();
+			CursorConfig cc = new CursorConfig();
+			Cursor cursor = dbSubscribe.openCursor(null, cc);
+			OperationStatus os = cursor.getFirst(skey, data, null);
+			while(os == OperationStatus.SUCCESS)
+			{
+				String nk = new String(skey.getData());
+				System.out.println("maybe delete SUBSCRIBE");
+				System.out.println(nk);
+				if (nk.endsWith("#"+channelname+"@"+username))
+				{
+					cursor.delete();
+				}
+				os = cursor.getNext(key, data, null);
+			}
+			cursor.close();
+			return true;		
+		}
 		else
 			return false;
 	}

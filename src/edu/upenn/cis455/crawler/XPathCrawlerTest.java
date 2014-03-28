@@ -10,7 +10,7 @@ public class XPathCrawlerTest extends TestCase {
 
 	public void testParseRobotsTxt() throws IOException
 	{
-		XPathCrawler xc = new XPathCrawler();
+		XPathCrawler xc = new XPathCrawler(null, null, 0, 0, false);
 		URL host = new URL("http://crawltest.cis.upenn.edu");
 		String hstring = xc.getHostAndPort(host);
 		xc.parseRobotsTxt(host);

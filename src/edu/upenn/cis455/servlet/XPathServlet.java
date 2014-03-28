@@ -288,12 +288,19 @@ public class XPathServlet extends HttpServlet {
 			pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Login</div>");
 			pw.println("<div class=\"panel-content\" style=\"display: block;\">");
 			// Login message and button:
-			pw.println("<p style=\"font-size: large;\">Login or Sign up now to view, create and edit your own channels!</p></br>");
+			pw.println("<p style=\"font-size: large;\">Login or Sign up now to view, create, delete your own channels, as well as subscribe other's channels!</p></br>");
 			pw.println("<button id=\"loginButton\" class=\"button primary\" style=\"width: 80%;\">"
 					+ "<p style=\"font-size: x-large;margin-top: 7px;\">Login / SignUp</p></button><br/><br/>");
 			// admin Login
-			pw.println("<button id=\"adminButton\" class=\"button bg-cyan\" style=\"width: 80%;\">"
-					+ "<p style=\"font-size: x-large;margin-top: 7px;\">Login as Admin</p></button></div></div>");
+			pw.println("<p style=\"font-size: large;\">Or, enter Admin's password and login as Admin to run crawler! And I will NOT tell you that the default password is 'admin'.</p></br>");
+			pw.println("<form action=\"/xpath\" method=\"POST\">");
+			pw.println("<label>Admin Password:</label>");
+			pw.println("<div class=\"input-control password\"><input type=\"password\" name=\"adminpass\"/>");
+			pw.println("<button class=\"btn-reveal\"></button></div>");
+			pw.println("<div class=\"form-actions\">");
+			pw.println("<button id=\"adminButton\" class=\"button bg-cyan\" style=\"width: 80%;\" name=\"buttonclicked\" " +
+					" value=\"ADMINLOGIN\">"
+					+ "<p style=\"font-size: x-large;margin-top: 7px;\">Login as Admin</p></button></div></form></div></div>");
 			
 			// Channel list panel
 			pw.println("<div class=\"panel place-right\" style=\"width: 62%;\" >");
@@ -328,23 +335,6 @@ public class XPathServlet extends HttpServlet {
 			storage.closeEnvironment();
 			return;
 		}
-		// pw.println("<html><head><h2>");
-		// pw.println("</h2></head><body>");
-		// pw.println("<form action='"+req.getContextPath()+"/xpath' method='POST'>");
-		// pw.println("<h3>Enter URL of an HTML or XML (Maximum length is 2000 chars): </h3><br/>");
-		// pw.println("<input size=80 name=urlofxml type=text maxlength=2000><br/>");
-		// pw.println("<h3>Enter XPaths you want to evaluate: </h3>");
-		// for (int i = 0; i < numberOfXPath; i++)
-		// {
-		// pw.println("<br/><input size=50 name='xpathnum"+String.valueOf(i)+"' type=text >");
-		// }
-		//
-		// pw.println("<input style=\"overflow: visible; height: 0; width: 0;" +
-		// " margin: 0; border: 0; padding: 0; display: block;\" " +
-		// "type=\"submit\" name=\"done\" value=\"Submit\"/>");
-		// pw.println("<input type=submit name='another' value='Add Another'>");
-		// pw.println("<input type=submit name='done' value='Submit'></form>");
-		// pw.println("</body></html>");
 	}
 
 	@Override
@@ -511,189 +501,54 @@ public class XPathServlet extends HttpServlet {
 				MyServletHelper.WriteHTMLTail(pw);
 				storage.closeEnvironment();
 				return;
+			}		
+		}
+		else if (opt.equals("ADMINLOGIN"))
+		{
+			resp.setContentType("text/html");
+			String adminpass = req.getParameter("adminpass");
+			MyServletHelper.WriteHTMLHead(pw);
+			if (adminpass != null && adminpass.equals("admin"))
+			{
+				pw.println("<div class=\"panel\">");
+				pw.println("<div class=\"panel-header bg-lightBlue fg-white\">Suceeded!</div>");
+				pw.println("<div class=\"panel-content text-center\" style=\"display: block;\">");
+				pw.println("<p style=\"font-size: large;\">Successfully logged in as Admin!</p>");
+				pw.println("<a href=\"/xpathcrawler\"><button class=\"button warning\" style=\"width: 28%;\">" +
+						"<p style=\"font-size: x-large;margin-top: 7px;\">Start as Admin</p></button></a>");
+				pw.println("<a href=\"/xpath\"><button class=\"button info\" style=\"width: 28%;\">" +
+						"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button></a>");
+				pw.println("</div></div>");
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
+				return;
 			}
-	
-			
+			else
+			{
+				MyServletHelper.WriteLoginFailPanel(pw, "Admin Password Incorrect! It should be 'admin'!");
+				MyServletHelper.WriteHTMLTail(pw);
+				storage.closeEnvironment();
+				return;
+			}
 		}
 		else if(opt.equals("DISPLAY"))
 		{
 			resp.setContentType("text/xml");
 			// WRITE THE FORMATTED XML
 			String target=req.getParameter("targetchannel");
-			String cu = (String) req.getSession().getAttribute("currentuser");
-			if (cu == null)
-				cu = req.getParameter("createuser");
+			String cu = req.getParameter("createuser");
 			
-			Set<MyChannel> listChannel = currentChannelMap.get(cu);
 			MyChannel todisplay = null;
-			for(MyChannel mc : listChannel)
-			{
-				if (mc.getChannelName().equals(target))
-				{
-					todisplay = mc;
-					break;
-				}
+			try {
+				todisplay = storage.getChannel(cu, target);
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 			List<String> urls = todisplay.getURLs();
 			writeFormattedXML(urls, todisplay.getXslURL(), pw);
 			storage.closeEnvironment();
 		}
-		// Switch between add another xpath and submit the form
-		// if(another != null && another.equals("Add Another"))
-		// {
-		// pw.println("<html><head>");
-		// pw.println("<h2>XPath Servlet 1.0 -- CIS 555 Homework 2 Milestone 1");
-		// pw.println("</h2></head><body>");
-		// pw.println("<form action='"+req.getContextPath()+"/xpath' method='POST'>");
-		// pw.println("<h3>Enter URL of an HTML or XML (Maximum length is 2000 chars): </h3><br/>");
-		// pw.println("<input size=80 name=urlofxml type=text maxlength=2000 value='"
-		// +
-		// req.getParameter("urlofxml")+"'><br/>");
-		// pw.println("<h3>Enter XPaths you want to evaluate: </h3><br/>");
-		// for (int i = 0; i < numberOfXPath; i++)
-		// {
-		// pw.println("<input size=50 name='xpathnum"+String.valueOf(i)+"' type='text' value='"
-		// +
-		// req.getParameter("xpathnum"+i)+"'><br/>");
-		// }
-		// pw.println("<input size=50 name='xpathnum"+String.valueOf(numberOfXPath)+"' type=text>");
-		// numberOfXPath++;
-		// // An invisible button that take action when pressing enter
-		// pw.println("<input style=\"overflow: visible; height: 0; width: 0;" +
-		// " margin: 0; border: 0; padding: 0; display: block;\" " +
-		// "type=\"submit\" name=\"done\" value=\"Submit\"/>");
-		// pw.println("<input type=submit name='another' value='Add Another'>");
-		// pw.println("<input type=submit name='done' value='Submit'></form>");
-		// pw.println("</body></html>");
-		// }
-		// else if(done != null && done.equals("Submit")) //Call XPathEngine to
-		// evaluate the XPaths and output the results
-		// {
-		// pw.println("<html><head>");
-		// pw.println("<link rel=\"stylesheet\" type=\"text/css\" href=\"fancytable.css\"/>");
-		// pw.println("<h2>Successfully Submitted!</h2>" +
-		// "<h3>Below is the evaluation result.</h3></head>");
-		//
-		// // Retrieve the html/xml from url
-		// MyHttpClient client = new MyHttpClient();
-		// try{
-		// client.connectTo(req.getParameter("urlofxml"));
-		// }
-		// catch (MalformedURLException e)
-		// {
-		// pw.println("<p><font color=#FF0000> ERROR: </font>Invalid URL</p>");
-		// pw.println("<p><font color=#FF0000> DETAIL: </font>"+e.getMessage()+"</p>");
-		// client.closeConnection();
-		// }
-		// catch (IOException e)
-		// {
-		// pw.println("<p><font color=#FF0000> ERROR: </font>Error when connect</p>");
-		// StringWriter exceptionsw = new StringWriter();
-		// e.printStackTrace(new PrintWriter(exceptionsw));
-		// pw.println(exceptionsw.toString().replace("\r\n", "<br/>"));
-		// client.closeConnection();
-		// }
-		// try {
-		// client.send("GET");
-		// String [] headerbody = client.receive();
-		// BufferedReader brheader = new BufferedReader(new
-		// StringReader(headerbody[0]));
-		// ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		// DocumentBuilderFactory dbfactory =
-		// DocumentBuilderFactory.newInstance();
-		// DocumentBuilder db = dbfactory.newDocumentBuilder();
-		// String header = null;
-		// String type = null;
-		// Document doc = null;
-		// Tidy tidy = new Tidy();
-		// tidy.setTidyMark(false);
-		// tidy.setXHTML(true);
-		// tidy.setXmlOut(true);
-		// //tidy.setUpperCaseTags(true);
-		// tidy.setForceOutput(true);
-		// tidy.setShowWarnings(false);
-		// tidy.setQuiet(true);
-		// while((header = brheader.readLine()) != null)
-		// {
-		// if (header.trim().matches("(?i)Content-Type.*html.*;*.*"))
-		// {
-		// tidy.parse(new ByteArrayInputStream(headerbody[1].getBytes()), baos);
-		// doc = db.parse(new ByteArrayInputStream(baos.toByteArray()));
-		// type = "html";
-		// break;
-		// }
-		// else if(header.trim().matches("(?i)Content-Type.*/xml.*;*.*"))
-		// {
-		// type = "xml";
-		// doc = db.parse(new ByteArrayInputStream(headerbody[1].getBytes()));
-		// break;
-		// }
-		// }
-		// if(type == null)
-		// {
-		// pw.println("<p><font color=#FF0000> ERROR: </font>Neither html nor xml</p>");
-		// client.closeConnection();
-		// }
-		// else // dom Ready to be evaluated
-		// {
-		// // Create an instance of XPathEngine
-		// XPathEngineImpl xpe = new XPathEngineImpl();
-		// // Debug printing
-		// //System.out.println(xpe.transformDoc(doc));
-		//
-		//
-		// ArrayList<String> xpathlist = new ArrayList<String>();
-		// Enumeration<String> pname = req.getParameterNames();
-		// // Get the list of xpaths
-		// while (pname.hasMoreElements())
-		// {
-		// String name = pname.nextElement();
-		// if(name.matches("xpathnum[0-9]+"))
-		// {
-		// xpathlist.add(req.getParameter(name));
-		// }
-		// }
-		//
-		// // Set the xpaths
-		// xpe.setXPaths(xpathlist.toArray(new String[0]));
-		// // Evaluate the xpaths (which will call isValid)
-		// boolean [] resEvaluate = xpe.evaluate(doc);
-		//
-		// // Print a table to show the results
-		// pw.println("<table>");
-		// pw.println("<tr><th>XPath</th><th>IsValid Result</th><th>Evaluate Result</th></tr>");
-		// for(int i = 0; i < numberOfXPath; i++)
-		// {
-		// pw.print("<tr><td>"+resp.encodeURL(xpathlist.get(i))+"</td>");
-		// if (xpe.isValid(i))
-		// pw.print("<td>True</td>");
-		// else
-		// pw.print("<td class=\"Falsetd\">False</td>");
-		// if (resEvaluate[i])
-		// pw.print("<td>True</td>");
-		// else
-		// pw.print("<td class=\"Falsetd\">False</td>");
-		// }
-		// pw.println("</table>");
-		//
-		// }
-		// } catch (Exception e) {
-		// // TODO Auto-generated catch block
-		// pw.println("<p><font color=#FF0000> ERROR: </font>sending and receiving</p>");
-		// StringWriter exceptionsw = new StringWriter();
-		// e.printStackTrace(new PrintWriter(exceptionsw));
-		// pw.println(exceptionsw.toString().replace("\r\n", "<br/>"));
-		// client.closeConnection();
-		// }
-		// client.closeConnection();
-		//
-		// // the number of xpath should be 1 again
-		// numberOfXPath = 1;
-		// pw.println("<form action='"+req.getContextPath()+"/xpath' method='GET'>");
-		// pw.println("<input type=submit value='Start Over'></form></html>");
-		// }
-		//
-		// }
 	}
 
 	// iterate through the docs to get matching
@@ -738,7 +593,7 @@ public class XPathServlet extends HttpServlet {
 	private void writeFormattedXML(List<String> urls, String xslt, PrintWriter pw)
 	{
 		System.out.println("AM I EVEN WRITING?");
-		pw.println("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>");
+		pw.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
 		pw.println("<?xml-stylesheet type=\"text/xsl\" href=\""+xslt+"\"?>");
 		pw.println("<documentcollection>");
 		SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd'T'kk:mm:ss");

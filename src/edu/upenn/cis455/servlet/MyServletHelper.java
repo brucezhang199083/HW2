@@ -20,8 +20,8 @@ public class MyServletHelper {
 		pw.println("<link rel=\"stylesheet\" href=\"/metro/css/metro-bootstrap.css\">");
 		pw.println("<script src=\"/metro/js/jquery/jquery.min.js\"></script>");
 		pw.println("<script src=\"/metro/js/jquery/jquery.widget.min.js\"></script>");
-		pw.println("<script src=\"/metro/js/metro.min.js\"></script></head>");
-		pw.println("<script src=\"/metro/js/metro/metro-accordion.js\"></script></head>");
+		pw.println("<script src=\"/metro/js/metro.min.js\"></script>");
+		pw.println("<script src=\"/metro/js/metro/metro-accordion.js\"></script>");
 		pw.println("<script src=\"/metro/js/metro/metro-listview.js\"></script></head>");
 		pw.println("<body class=\"metro\" >");
 		pw.println("<div class=\"container\" style=\"width:80%;\">");
@@ -42,7 +42,7 @@ public class MyServletHelper {
 		pw.println("<div class=\"panel-content text-center\" style=\"display: block;\">");
 		pw.println("<p style=\"font-size: large;\">"+errormsg+"</p>");
 		pw.println("<a href=\"/xpath\"><button class=\"button danger\" style=\"width: 28%;\">" +
-				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button>");
+				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button></a>");
 		pw.println("</div></div>");
 	}
 	public static void WriteLoginSuccessPanel(PrintWriter pw, String msg)
@@ -52,7 +52,7 @@ public class MyServletHelper {
 		pw.println("<div class=\"panel-content text-center\" style=\"display: block;\">");
 		pw.println("<p style=\"font-size: large;\">"+msg+"</p>");
 		pw.println("<a href=\"/xpath\"><button class=\"button info\" style=\"width: 28%;\">" +
-				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button>");
+				"<p style=\"font-size: x-large;margin-top: 7px;\">Back to Home</p></button></a>");
 		pw.println("</div></div>");
 	}
 	
@@ -212,11 +212,23 @@ public class MyServletHelper {
 		pw.println(" });");
 		pw.println(" });</script>");
 	}
-	public static void WriteSimpleSubmitScript(PrintWriter pw, String formname)
+	public static void WriteAJAXScript(PrintWriter pw)
 	{
-		pw.println("<script>"+
-	    "function toTarget(target){"+
-	    "document.getElementById('"+formname+"').target = target;"+
-	    "document.getElementById('"+formname+"').submit();}</script>");
+		pw.println("<script>");
+		pw.println("var myVar=setInterval(function(){myTimer()},200);");
+		pw.println("function myTimer() {");
+		pw.println("$.get('/xpathcrawler?getinfo=a', function(responseText) {");
+		pw.println("if (responseText.indexOf('blah') == -1)");
+		pw.println("{");
+		pw.println("   $('#outputdiv').append(responseText+'<br/>');   ");
+		pw.println("	if (responseText.indexOf('crawling finished') > -1)");
+		pw.println("	{");
+		pw.println("		$('#infodiv').append('Crawling Finished. <a href=\"/xpathcrawler\"><button>Return</button></a>');");
+		pw.println("$.get('/xpathcrawler?getinfo=d', function(responseText) {});");
+		pw.println("	}		");
+		pw.println("}");
+		pw.println("}); ");
+		pw.println("}");
+		pw.println("</script>");
 	}
 }
