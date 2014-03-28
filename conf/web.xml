@@ -15,10 +15,20 @@
      <servlet-name>xpath</servlet-name>
      <servlet-class>edu.upenn.cis455.servlet.XPathServlet</servlet-class> 
    </servlet>
+   
+   <servlet>
+     <servlet-name>xpathcrawler</servlet-name>
+     <servlet-class>edu.upenn.cis455.servlet.CrawlerServlet</servlet-class> 
+   </servlet>
     
    <servlet-mapping>
      <servlet-name>xpath</servlet-name>
      <url-pattern>/xpath/*</url-pattern>
+   </servlet-mapping>  
+   
+   <servlet-mapping>
+     <servlet-name>xpathcrawler</servlet-name>
+     <url-pattern>/xpathcrawler/*</url-pattern>
    </servlet-mapping>  
 
    <!-- add any additional servlets and servlet mappings here -->
