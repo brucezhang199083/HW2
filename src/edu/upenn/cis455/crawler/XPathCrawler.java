@@ -215,7 +215,7 @@ public class XPathCrawler implements Runnable{
 					continue;
 				}
 				//System.out.println("Crawingqueue:"+instance.crawlingQueue);
-				if (res)
+				if (res != null && res == true)
 					count++;
 				if (MaximumDocNumber > 0 && count >= MaximumDocNumber)
 					break;
@@ -224,7 +224,7 @@ public class XPathCrawler implements Runnable{
 			}
 			while(res != null);
 		
-			pw.println("I have to be outputed");
+			pw.println("I have to be outputted");
 			pw.println(crawledSet.size()+" Document Visited");
 			pw.println("Domain visited : "+robotsMap.keySet());
 			pw.println("Total byte downloaded : "+totalByte);
